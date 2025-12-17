@@ -11,6 +11,7 @@
 #include "include/ui/profile/edit_ssh.h"
 #include "include/ui/profile/edit_custom.h"
 #include "include/ui/profile/edit_extra_core.h"
+#include "include/ui/profile/edit_naive.h"
 
 #include "include/configs/proxy/includes.h"
 #include "include/configs/proxy/Preset.hpp"
@@ -148,6 +149,7 @@ DialogEditProfile::DialogEditProfile(const QString &_type, int profileOrGroupId,
         LOAD_TYPE("socks")
         LOAD_TYPE("http")
         LOAD_TYPE("shadowsocks")
+        LOAD_TYPE("naive")
         LOAD_TYPE("trojan")
         LOAD_TYPE("vmess")
         LOAD_TYPE("vless")
@@ -192,6 +194,10 @@ void DialogEditProfile::typeSelected(const QString &newType) {
         innerEditor = _innerWidget;
     } else if (type == "socks") {
         auto _innerWidget = new EditSocks(this);
+        innerWidget = _innerWidget;
+        innerEditor = _innerWidget;
+    } else if (type == "naive") {
+        auto _innerWidget = new EditNaive(this);
         innerWidget = _innerWidget;
         innerEditor = _innerWidget;
     } else if (type == "shadowsocks") {

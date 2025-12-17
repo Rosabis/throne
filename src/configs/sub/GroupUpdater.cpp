@@ -147,6 +147,13 @@ namespace Subscription {
             if (!ok) return;
         }
 
+        // Naive
+        if (str.startsWith("naive+https://") || str.startsWith("naive+quic://")) {
+            ent = Configs::ProfileManager::NewProxyEntity("naive");
+            auto ok = ent->Naive()->ParseFromLink(str);
+            if (!ok) return;
+        }
+
         // ShadowSocks
         if (str.startsWith("ss://")) {
             ent = Configs::ProfileManager::NewProxyEntity("shadowsocks");

@@ -242,6 +242,9 @@ namespace Configs {
         } else if (type == "http") {
             bean = new Configs::SocksHttpBean(Configs::SocksHttpBean::type_HTTP);
             outbound = new Configs::http();
+        } else if (type == "naive") {
+            bean = new Configs::AbstractBean(-1);
+            outbound = new Configs::naive();
         } else if (type == "shadowsocks") {
             bean = new Configs::ShadowSocksBean();
             outbound = new Configs::shadowsocks();
