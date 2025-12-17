@@ -4,7 +4,6 @@
 #include <include/global/Utils.hpp>
 
 #include "include/configs/common/utils.h"
-#include "include/global/DataStore.hpp"
 
 namespace Configs {
     bool naive::ParseFromLink(const QString& link)
