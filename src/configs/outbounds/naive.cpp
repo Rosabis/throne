@@ -78,12 +78,16 @@ namespace Configs {
         int listenPort = base + (int)(h % 10000);
         if (listenPort <= 0 || listenPort > 65535) listenPort = 30000;
 
-        QJsonObject object;
+        // Build base outbound first, then override with local socks settings
+        auto baseResult = outbound::Build();
+        QJsonObject object = baseResult.object;
         object["type"] = "socks";
+        // Override with local naive.exe socks address/port (not remote server)
         object["server"] = listenAddr;
         object["server_port"] = listenPort;
+        // Remove remote server fields that don't apply to local socks
+        object.remove("name"); // Keep name from base if needed, but server/port must be local
         // Do not add auth here; naive local socks usually doesn't require it.
-        mergeJsonObjects(object, outbound::Build().object);
         return {object, ""};
     }
 

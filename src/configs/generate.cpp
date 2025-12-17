@@ -295,6 +295,9 @@ namespace Configs {
             ctx->buildConfigResult->extraCoreData->config = ""; // not used for naive by default
             ctx->buildConfigResult->extraCoreData->configDir = GetBasePath();
             ctx->buildConfigResult->extraCoreData->noLog = Configs::dataStore->naive_no_log;
+            
+            MW_show_log(QString("Naive: will start naive.exe on %1:%2, sing-box will connect to socks://%1:%2")
+                        .arg(listenAddr, Int2String(listenPort)));
         }
     }
 
