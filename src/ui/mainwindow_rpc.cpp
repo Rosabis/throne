@@ -10,6 +10,8 @@
 #include <QPushButton>
 #include <QDesktopServices>
 #include <QMessageBox>
+#include <QProcess>
+#include <QThread>
 
 #include "include/configs/generate.h"
 #include "include/sys/Process.hpp"
@@ -156,8 +158,44 @@ void MainWindow::urltest_current_group(const QList<std::shared_ptr<Configs::Prox
         auto testCount = buildObject->fullConfigs.size() + (!buildObject->outboundTags.empty());
         for (const auto &entID: buildObject->fullConfigs.keys()) {
             auto configStr = buildObject->fullConfigs[entID];
-            auto func = [this, &counter, testCount, configStr, entID]() {
+            auto extraCoreData = buildObject->nodeExtraCoreData.contains(entID) ? buildObject->nodeExtraCoreData[entID] : nullptr;
+            auto func = [this, &counter, testCount, configStr, entID, extraCoreData]() {
+                // For Naive nodes, start naive.exe before testing
+                QProcess *naiveProcess = nullptr;
+                if (extraCoreData != nullptr && !extraCoreData->path.isEmpty()) {
+                    naiveProcess = new QProcess();
+                    QStringList args;
+                    if (!extraCoreData->args.isEmpty()) {
+                        // Use QProcess::splitCommand if available (Qt 5.15+), otherwise simple split
+                        #if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
+                        args = QProcess::splitCommand(extraCoreData->args);
+                        #else
+                        // Simple split for older Qt versions (may not handle quotes correctly)
+                        args = extraCoreData->args.split(' ', Qt::SkipEmptyParts);
+                        #endif
+                    }
+                    naiveProcess->setProgram(extraCoreData->path);
+                    naiveProcess->setArguments(args);
+                    naiveProcess->start();
+                    if (!naiveProcess->waitForStarted(5000)) {
+                        MW_show_log(tr("Failed to start naive.exe for testing"));
+                        delete naiveProcess;
+                        naiveProcess = nullptr;
+                    } else {
+                        // Wait a bit for naive.exe to be ready
+                        QThread::msleep(500);
+                    }
+                }
+                // Run the test
                 MainWindow::runURLTest(configStr, true, {}, {}, entID);
+                // Stop naive.exe after test
+                if (naiveProcess != nullptr) {
+                    naiveProcess->terminate();
+                    if (!naiveProcess->waitForFinished(3000)) {
+                        naiveProcess->kill();
+                    }
+                    delete naiveProcess;
+                }
                 counter++;
                 if (counter.load() == testCount) {
                     speedtestRunning.unlock();
@@ -249,7 +287,39 @@ void MainWindow::speedtest_current_group(const QList<std::shared_ptr<Configs::Pr
             stopSpeedtest.store(false);
             for (const auto &entID: buildObject->fullConfigs.keys()) {
                 auto configStr = buildObject->fullConfigs[entID];
+                auto extraCoreData = buildObject->nodeExtraCoreData.contains(entID) ? buildObject->nodeExtraCoreData[entID] : nullptr;
+                // For Naive nodes, start naive.exe before testing
+                QProcess *naiveProcess = nullptr;
+                if (extraCoreData != nullptr && !extraCoreData->path.isEmpty()) {
+                    naiveProcess = new QProcess();
+                    QStringList args;
+                    if (!extraCoreData->args.isEmpty()) {
+                        #if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
+                        args = QProcess::splitCommand(extraCoreData->args);
+                        #else
+                        args = extraCoreData->args.split(' ', Qt::SkipEmptyParts);
+                        #endif
+                    }
+                    naiveProcess->setProgram(extraCoreData->path);
+                    naiveProcess->setArguments(args);
+                    naiveProcess->start();
+                    if (!naiveProcess->waitForStarted(5000)) {
+                        MW_show_log(tr("Failed to start naive.exe for speed test"));
+                        delete naiveProcess;
+                        naiveProcess = nullptr;
+                    } else {
+                        QThread::msleep(500); // Wait for naive.exe to be ready
+                    }
+                }
                 runSpeedTest(configStr, true, false, {}, {}, entID);
+                // Stop naive.exe after test
+                if (naiveProcess != nullptr) {
+                    naiveProcess->terminate();
+                    if (!naiveProcess->waitForFinished(3000)) {
+                        naiveProcess->kill();
+                    }
+                    delete naiveProcess;
+                }
             }
 
             if (!buildObject->outboundTags.empty()) {

@@ -1006,6 +1006,42 @@ namespace Configs {
                 MW_show_log("Skipping Tailscale conf");
                 continue;
             }
+            // Handle Naive nodes separately - they need extra process
+            if (item->type == "naive")
+            {
+                auto naiveCtx = std::make_shared<BuildSingBoxConfigContext>();
+                naiveCtx->forTest = true;
+                naiveCtx->ent = item;
+                CalculatePrerequisities(naiveCtx);
+                if (!naiveCtx->error.isEmpty())
+                {
+                    MW_show_log("Failed to build Naive test config: " + naiveCtx->error);
+                    item->latency = -1;
+                    continue;
+                }
+                buildDNSSection(naiveCtx);
+                buildLogSections(naiveCtx);
+                buildCertificateSection(naiveCtx);
+                buildNTPSection(naiveCtx);
+                buildOutboundsSection(naiveCtx);
+                if (!naiveCtx->error.isEmpty())
+                {
+                    MW_show_log("Failed to build Naive test config: " + naiveCtx->error);
+                    item->latency = -1;
+                    continue;
+                }
+                buildRouteSection(naiveCtx);
+                if (!naiveCtx->error.isEmpty())
+                {
+                    MW_show_log("Failed to build Naive test config: " + naiveCtx->error);
+                    item->latency = -1;
+                    continue;
+                }
+                // Store the config and extraCoreData for this Naive node
+                res->fullConfigs[item->id] = QJsonObject2QString(naiveCtx->buildConfigResult->coreConfig, true);
+                res->nodeExtraCoreData[item->id] = naiveCtx->buildConfigResult->extraCoreData;
+                continue;
+            }
             if (!IsValid(item)) {
                 MW_show_log("Skipping invalid config: " + item->outbound->name);
                 item->latency = -1;
