@@ -4,6 +4,7 @@
 #include <include/global/Utils.hpp>
 
 #include "include/configs/common/utils.h"
+#include "include/global/DataStore.hpp"
 
 namespace Configs {
     bool naive::ParseFromLink(const QString& link)
@@ -67,19 +68,23 @@ namespace Configs {
 
     BuildResult naive::Build()
     {
-        // Naive proxy typically runs as an external process
-        // Return configuration that will be used by external naive-proxy binary
+        // External naive.exe provides local socks, sing-box only needs socks outbound.
+        auto listenAddr = Configs::dataStore->naive_socks_listen_addr.trimmed();
+        if (listenAddr.isEmpty()) listenAddr = "127.0.0.1";
+        int base = Configs::dataStore->naive_socks_port_base;
+        if (base <= 0) base = 30000;
+        // Use stable hash to allocate a deterministic local port per node.
+        // (Avoid relying on profile id which isn't available in outbound.)
+        uint h = qHash(server + ":" + Int2String(server_port) + ":" + username);
+        int listenPort = base + (int)(h % 10000);
+        if (listenPort <= 0 || listenPort > 65535) listenPort = 30000;
+
         QJsonObject object;
-        object["type"] = "naive";
+        object["type"] = "socks";
+        object["server"] = listenAddr;
+        object["server_port"] = listenPort;
+        // Do not add auth here; naive local socks usually doesn't require it.
         mergeJsonObjects(object, outbound::Build().object);
-        if (!username.isEmpty()) object["username"] = username;
-        if (!password.isEmpty()) object["password"] = password;
-        if (!protocol.isEmpty()) object["protocol"] = protocol;
-        if (!extra_headers.isEmpty()) object["extra_headers"] = extra_headers;
-        if (!sni.isEmpty()) object["sni"] = sni;
-        if (!certificate.isEmpty()) object["certificate"] = certificate;
-        if (insecure_concurrency > 0) object["insecure_concurrency"] = insecure_concurrency;
-        if (disable_log) object["disable_log"] = disable_log;
         return {object, ""};
     }
 

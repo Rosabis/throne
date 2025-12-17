@@ -296,6 +296,10 @@ namespace Configs {
         _add(new configItem("core_box_clash_listen_addr", &core_box_clash_listen_addr, itemType::string));
         _add(new configItem("core_box_clash_api_secret", &core_box_clash_api_secret, itemType::string));
         _add(new configItem("core_box_underlying_dns", &core_box_underlying_dns, itemType::string));
+        _add(new configItem("naive_core_path", &naive_core_path, itemType::string));
+        _add(new configItem("naive_socks_listen_addr", &naive_socks_listen_addr, itemType::string));
+        _add(new configItem("naive_socks_port_base", &naive_socks_port_base, itemType::integer));
+        _add(new configItem("naive_no_log", &naive_no_log, itemType::boolean));
         _add(new configItem("enable_ntp", &enable_ntp, itemType::boolean));
         _add(new configItem("ntp_server_address", &ntp_server_address, itemType::string));
         _add(new configItem("ntp_server_port", &ntp_server_port, itemType::integer));

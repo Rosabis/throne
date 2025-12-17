@@ -230,6 +230,70 @@ namespace Configs {
             ctx->buildConfigResult->extraCoreData->configDir = GetBasePath();
             ctx->buildConfigResult->extraCoreData->noLog = outbound->noLogs;
         }
+
+        // Naive (external core): start naive.exe, sing-box connects to local socks.
+        if (ctx->ent->type == "naive")
+        {
+            auto outbound = dynamic_cast<Configs::naive*>(ctx->ent->outbound.get());
+            if (outbound == nullptr)
+            {
+                MW_show_log("INVALID ENT TYPE, NEEDED NAIVE GOT NULLPTR");
+                ctx->error = "failed to cast to naive, type is: " + ctx->ent->type;
+                return;
+            }
+            if (Configs::dataStore->naive_core_path.trimmed().isEmpty())
+            {
+                ctx->error = "Naive core path is empty. Please set it in Settings -> Core Options.";
+                return;
+            }
+
+            // Deterministic port per profile id to avoid random collisions.
+            auto listenAddr = Configs::dataStore->naive_socks_listen_addr.trimmed();
+            if (listenAddr.isEmpty()) listenAddr = "127.0.0.1";
+            int base = Configs::dataStore->naive_socks_port_base;
+            if (base <= 0) base = 30000;
+            int listenPort = base + (ctx->ent->id % 10000);
+            if (listenPort <= 0 || listenPort > 65535) listenPort = 30000;
+
+            // Build args following nekoray style.
+            // Note: certificate via env (SSL_CERT_FILE) is not supported by current core extra process runner.
+            QStringList args;
+            if (!Configs::dataStore->naive_no_log && !outbound->disable_log) args << "--log";
+            args << ("--listen=socks://" + listenAddr + ":" + Int2String(listenPort));
+
+            auto domain_address = outbound->sni.trimmed().isEmpty() ? outbound->server : outbound->sni.trimmed();
+            auto connect_address = outbound->server;
+            auto connect_port = outbound->server_port;
+            domain_address = WrapIPV6Host(domain_address);
+            connect_address = WrapIPV6Host(connect_address);
+
+            QUrl proxy_url;
+            proxy_url.setScheme(outbound->protocol);
+            proxy_url.setUserName(outbound->username);
+            proxy_url.setPassword(outbound->password);
+            proxy_url.setPort(connect_port);
+            proxy_url.setHost(domain_address);
+            args << ("--proxy=" + proxy_url.toString(QUrl::FullyEncoded));
+
+            if (domain_address != connect_address)
+            {
+                args << ("--host-resolver-rules=MAP " + domain_address + " " + connect_address);
+            }
+            if (outbound->insecure_concurrency > 0)
+            {
+                args << ("--insecure-concurrency=" + Int2String(outbound->insecure_concurrency));
+            }
+            if (!outbound->extra_headers.trimmed().isEmpty())
+            {
+                args << ("--extra-headers=" + outbound->extra_headers);
+            }
+
+            ctx->buildConfigResult->extraCoreData->path = QFileInfo(Configs::dataStore->naive_core_path).canonicalFilePath();
+            ctx->buildConfigResult->extraCoreData->args = QStringList2Command(QStringList{} << args).trimmed();
+            ctx->buildConfigResult->extraCoreData->config = ""; // not used for naive by default
+            ctx->buildConfigResult->extraCoreData->configDir = GetBasePath();
+            ctx->buildConfigResult->extraCoreData->noLog = Configs::dataStore->naive_no_log;
+        }
     }
 
     void buildLogSections(std::shared_ptr<BuildSingBoxConfigContext> &ctx) {

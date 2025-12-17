@@ -190,6 +190,13 @@ namespace Configs {
         QString core_box_clash_api_secret = "";
         QString core_box_underlying_dns = "";
 
+        // Extra Core (built-in helpers)
+        // Naive: run as external naive.exe, sing-box connects to local socks.
+        QString naive_core_path = "";
+        QString naive_socks_listen_addr = "127.0.0.1";
+        int naive_socks_port_base = 30000;
+        bool naive_no_log = false;
+
         // Methods
 
         DataStore();
