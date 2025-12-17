@@ -1,4 +1,4 @@
-name: Throne build matrix
+name: Throne Windows Build Only
 on:
   workflow_dispatch:
     inputs:
@@ -15,32 +15,8 @@ jobs:
     strategy:
       matrix:
         include:
-          - cross_os: windows
-            cross_arch: amd64
-            go_version: "1.25.5"
-          - cross_os: windows
-            cross_arch: arm64
-            go_version: "1.25.5"
-          - cross_os: linux
-            cross_arch: amd64
-            go_version: "1.25.5"
-          - cross_os: linux
-            cross_arch: arm64
-            go_version: "1.25.5"
-          - cross_os: darwin
-            cross_arch: amd64
-            go_version: "1.25.5"
-          - cross_os: darwin
-            cross_arch: arm64
-            go_version: "1.25.5"
-          - cross_os: darwin-legacy
-            cross_arch: amd64
-            go_version: "1.25.5"
           - cross_os: windowslegacy
             cross_arch: amd64
-            go_version: "1.25.5"
-          - cross_os: windowslegacy
-            cross_arch: 386
             go_version: "1.25.5"
       fail-fast: false
     runs-on: ubuntu-latest
@@ -61,7 +37,7 @@ jobs:
           cache-dependency-path: |
             core/server/go.sum
       - name: Install Golang For Legacy OS
-        if: matrix.cross_os == 'windowslegacy' || matrix.cross_os == 'darwin-legacy'
+        if: matrix.cross_os == 'windowslegacy'
         run: |
           curl -L -o go.7z https://github.com/throneproj/env_windows_legacy/releases/download/latest/go.7z
           7z x go.7z
@@ -97,35 +73,8 @@ jobs:
       matrix:
         include:
           - platform: windows-latest
-            qt_version: "6.10.1"
-            target: x86_64
-          - platform: windows-11-arm
-            qt_version: "6.10.1"
-            target: arm64
-          - platform: ubuntu-22.04
-            qt_version: "6.10.1"
-            target: amd64
-          - platform: ubuntu-22.04
-            qt_version: "6.2.0"
-            target: amd64
-          - platform: ubuntu-24.04-arm
-            qt_version: "6.10.1"
-            target: arm64
-          - platform: macos-latest
-            qt_version: "6.10.1"
-            target: x86_64
-          - platform: macos-latest
-            qt_version: "6.10.1"
-            target: arm64
-          - platform: macos-latest
-            qt_version: "6.4.3"
-            target: x86_64
-          - platform: windows-latest
             qt_version: "6.2.12"
             target: x86_64
-          - platform: windows-latest
-            qt_version: "6.2.12"
-            target: i686
       fail-fast: false
     runs-on: ${{ matrix.platform }}
     env:
@@ -170,15 +119,6 @@ jobs:
         run: |
           set "OPENSSL_ROOT_DIR=%cd%\openssl"
           ./script/build_qt_static_windows.bat ${{ matrix.qt_version }}
-      - name: Install Qt
-        uses: jurplel/install-qt-action@v4.3.0
-        if: matrix.platform != 'windows-latest'
-        with:
-          version: ${{ matrix.qt_version }}
-          setup-python: true
-          cache: true
-          cache-key-prefix: QtCache-${{ matrix.platform }}-${{ matrix.target }}
-      # ========================================================================================================= Generate MakeFile and Build
       - name: Windows - Generate MakeFile and Build
         shell: bash
         if: matrix.platform == 'windows-latest' && matrix.qt_version != '6.2.12'
@@ -192,6 +132,14 @@ jobs:
           ninja
           cd ..
           ./script/deploy_windows.sh
+      - name: Build Installer with NSIS
+        shell: cmd
+        if: matrix.platform == 'windows-latest' && matrix.qt_version != '6.2.12'
+        run: |
+          choco install nsis
+          cp .\script\windows_installer.nsi .
+          "C:\Program Files (x86)\NSIS\makensis.exe" windows_installer.nsi
+          cp ThroneSetup.exe deployment/
       - name: Legacy Windows - Generate MakeFile and Build
         shell: bash
         if: matrix.platform == 'windows-latest' && matrix.qt_version == '6.2.12'
@@ -218,59 +166,6 @@ jobs:
           ninja
           cd ..
           ./script/deploy_woa.sh
-      - name: Build Installer with NSIS
-        shell: cmd
-        if: matrix.platform == 'windows-latest' && matrix.qt_version != '6.2.12'
-        run: |
-          choco install nsis
-          cp .\script\windows_installer.nsi .
-          "C:\Program Files (x86)\NSIS\makensis.exe" windows_installer.nsi
-          cp ThroneSetup.exe deployment/
-      - name: Linux - Generate MakeFile and Build
-        shell: bash
-        if: contains( matrix.platform, 'ubuntu' ) && matrix.qt_version != '6.2.0'
-        run: |
-          sudo apt update && sudo apt upgrade -y
-          mkdir build
-          cd build
-          curl -fLso srslist.h "https://raw.githubusercontent.com/throneproj/routeprofiles/rule-set/srslist.h"
-          cmake -GNinja -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXE_LINKER_FLAGS="-static-libgcc -static-libstdc++" ..
-          ninja
-          cd ..
-          ./script/deploy_linux64.sh
-      - name: Linux Using System Qt - Generate MakeFile and Build
-        shell: bash
-        if: contains( matrix.platform, 'ubuntu' ) && matrix.qt_version == '6.2.0'
-        run: |
-          mkdir build
-          cd build
-          curl -fLso srslist.h "https://raw.githubusercontent.com/throneproj/routeprofiles/rule-set/srslist.h"
-          cmake -GNinja -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXE_LINKER_FLAGS="-static-libgcc" ..
-          ninja
-          cd ..
-          ./script/deploy_linux64_system_qt.sh
-      - name: macOS - Generate MakeFile and Build
-        shell: bash
-        if: matrix.platform == 'macos-latest' && matrix.qt_version != '6.4.3'
-        run: |
-          mkdir build
-          cd build
-          curl -fLso srslist.h "https://raw.githubusercontent.com/throneproj/routeprofiles/rule-set/srslist.h"
-          cmake -GNinja -DCMAKE_BUILD_TYPE=Release -DNKR_PACKAGE_MACOS=1 -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15 -DCMAKE_OSX_ARCHITECTURES=${{ matrix.target }} ..
-          ninja
-          cd ..
-          ./script/deploy_macos.sh ${{ matrix.target }}
-      - name: Legacy macOS - Generate MakeFile and Build
-        shell: bash
-        if: matrix.platform == 'macos-latest' && matrix.qt_version == '6.4.3'
-        run: |
-          mkdir build
-          cd build
-          curl -fLso srslist.h "https://raw.githubusercontent.com/throneproj/routeprofiles/rule-set/srslist.h"
-          cmake -GNinja -DCMAKE_BUILD_TYPE=Release -DNKR_PACKAGE_MACOS=1 -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15 -DCMAKE_OSX_ARCHITECTURES=${{ matrix.target }} ..
-          ninja
-          cd ..
-          ./script/deploy_macos.sh
       # ========================================================================================================= Deployments
       - name: Tar files
         shell: bash
@@ -281,7 +176,7 @@ jobs:
           name: Throne-${{ github.sha }}-${{ matrix.platform }}-${{ matrix.target }}-Qt${{ matrix.qt_version }}
           path: artifacts.tgz
   publish:
-    name: Pack & Publish Release
+    name: Pack & Publish Windows Release
     runs-on: ubuntu-latest
     needs:
       - build-cpp
@@ -297,7 +192,7 @@ jobs:
         uses: actions/download-artifact@v4.3.0
         with:
           path: download-artifact
-      - name: Pack
+      - name: Pack Windows Releases
         run: |
           curl -Lo - https://github.com/tcnksm/ghr/releases/download/v0.17.0/ghr_v0.17.0_linux_amd64.tar.gz | tar xzv
           mv ghr*linux_amd64/ghr .
@@ -306,73 +201,18 @@ jobs:
           cd deployment
           rm -rf *.pdb win*/*.pdb
           ####
-          bash ../script/pack_debian.sh ${{ github.event.inputs.tag }}
-          mv Throne.deb $version_standalone-debian-x64.deb
-          rm -rf Throne
-          ####
-          bash ../script/pack_debian_system_qt.sh ${{ github.event.inputs.tag }}
-          mv Throne.deb $version_standalone-debian-system-qt-x64.deb
-          rm -rf Throne
-          ####
-          mv linux-amd64 Throne
-          zip -9 -r $version_standalone-linux-amd64.zip Throne
-          rm -rf Throne
-          ####
-          mv linux-arm64 Throne
-          zip -9 -r $version_standalone-linux-arm64.zip Throne
-          rm -rf Throne
-          ####
-          mv ThroneSetup.exe $version_standalone-windows64-installer.exe
-          mv windows64 Throne
-          zip -9 -r $version_standalone-windows64.zip Throne
-          rm -rf Throne
-          ####
-          mv windows32 Throne
-          zip -9 -r $version_standalone-windows32.zip Throne
-          rm -rf Throne
-          ####
           mv windowslegacy64 Throne
-          zip -9 -r $version_standalone-windowslegacy64.zip Throne
-          rm -rf Throne
-          ####
-          mv windows-arm64 Throne
-          zip -9 -r $version_standalone-windows-arm64.zip Throne
-          rm -rf Throne
-          ####
-          mkdir Throne
-          mv macos-arm64/Throne.app Throne/Throne.app
-          zip -9 --symlinks -r $version_standalone-macos-arm64.zip Throne
-          rm -rf macos-arm64
-          rm -rf Throne
-          ####
-          mkdir Throne
-          mv macos-amd64/Throne.app Throne/Throne.app
-          zip -9 --symlinks -r $version_standalone-macos-amd64.zip Throne
-          rm -rf macos-amd64
-          rm -rf Throne
-          ####
-          mkdir Throne
-          mv macos-legacy-amd64/Throne.app Throne/Throne.app
-          zip -9 --symlinks -r $version_standalone-macoslegacy-amd64.zip Throne
-          rm -rf macos-legacy-amd64
+          zip -9 -r $version_standalone-windows64.zip Throne
           rm -rf Throne
       - name: Clean Up
         run: |
           cd deployment
-          rm -rf windows-arm64
-          rm -rf linux-arm64
-          rm -rf linux-amd64
-          rm -rf windows64
-          rm -rf windows32
           rm -rf windowslegacy64
-          rm -rf macos-amd64
-          rm -rf macos-arm64
-          rm -rf macos-legacy-amd64
           rm -rf *.pdb
       - name: Uploading Artifact
         uses: actions/upload-artifact@v4.6.2
         with:
-          name: Deployment-${{ github.sha }}
+          name: Windows-Deployment-${{ github.sha }}
           path: deployment
       - name: PreRelease
         if: github.event.inputs.publish == 'p'

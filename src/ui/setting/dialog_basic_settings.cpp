@@ -155,6 +155,7 @@ DialogBasicSettings::DialogBasicSettings(QWidget *parent)
     D_LOAD_BOOL(sub_clear)
     D_LOAD_BOOL(net_insecure)
     D_LOAD_BOOL(sub_send_hwid)
+    D_LOAD_STRING(sub_custom_hwid_params)
     D_LOAD_INT_ENABLE(sub_auto_update, sub_auto_update_enable)
     auto details = GetDeviceDetails();
 	ui->sub_send_hwid->setToolTip(
@@ -253,6 +254,7 @@ void DialogBasicSettings::accept() {
     D_SAVE_BOOL(sub_clear)
     D_SAVE_BOOL(net_insecure)
     D_SAVE_BOOL(sub_send_hwid)
+    D_SAVE_STRING(sub_custom_hwid_params)
     D_SAVE_INT_ENABLE(sub_auto_update, sub_auto_update_enable)
 
     // Core
@@ -298,6 +300,10 @@ void DialogBasicSettings::on_core_settings_clicked() {
     MyLineEdit *core_box_clash_api;
     MyLineEdit *core_box_clash_api_secret;
     MyLineEdit *core_box_clash_listen_addr;
+    MyLineEdit *naive_core_path;
+    MyLineEdit *naive_socks_listen_addr;
+    MyLineEdit *naive_socks_port_base;
+    QCheckBox *naive_no_log;
     //
     auto core_box_clash_listen_addr_l = new QLabel("Clash Api Listen Address");
     core_box_clash_listen_addr = new MyLineEdit;
@@ -317,6 +323,40 @@ void DialogBasicSettings::on_core_settings_clicked() {
     layout->addWidget(core_box_clash_api_secret_l, ++line, 0);
     layout->addWidget(core_box_clash_api_secret, line, 1);
     //
+
+    // Naive external core (naive.exe)
+    auto naive_core_path_l = new QLabel("Naive Core Path (naive.exe)");
+    naive_core_path = new MyLineEdit;
+    naive_core_path->setText(Configs::dataStore->naive_core_path);
+    auto naive_core_path_pick = new QPushButton("Select");
+    layout->addWidget(naive_core_path_l, ++line, 0);
+    auto naive_core_path_row = new QHBoxLayout;
+    naive_core_path_row->addWidget(naive_core_path);
+    naive_core_path_row->addWidget(naive_core_path_pick);
+    layout->addLayout(naive_core_path_row, line, 1);
+    connect(naive_core_path_pick, &QPushButton::clicked, w, [=] {
+        auto f = QFileDialog::getOpenFileName(w, "Select naive core", QDir::currentPath());
+        if (!f.isEmpty()) naive_core_path->setText(f);
+    });
+
+    auto naive_socks_listen_addr_l = new QLabel("Naive Socks Listen Address");
+    naive_socks_listen_addr = new MyLineEdit;
+    naive_socks_listen_addr->setText(Configs::dataStore->naive_socks_listen_addr);
+    layout->addWidget(naive_socks_listen_addr_l, ++line, 0);
+    layout->addWidget(naive_socks_listen_addr, line, 1);
+
+    auto naive_socks_port_base_l = new QLabel("Naive Socks Port Base");
+    naive_socks_port_base = new MyLineEdit;
+    naive_socks_port_base->setText(Int2String(Configs::dataStore->naive_socks_port_base));
+    layout->addWidget(naive_socks_port_base_l, ++line, 0);
+    layout->addWidget(naive_socks_port_base, line, 1);
+
+    auto naive_no_log_l = new QLabel("Naive No Output");
+    naive_no_log = new QCheckBox;
+    naive_no_log->setChecked(Configs::dataStore->naive_no_log);
+    layout->addWidget(naive_no_log_l, ++line, 0);
+    layout->addWidget(naive_no_log, line, 1);
+
     auto box = new QDialogButtonBox;
     box->setOrientation(Qt::Horizontal);
     box->setStandardButtons(QDialogButtonBox::Cancel | QDialogButtonBox::Ok);
@@ -324,6 +364,10 @@ void DialogBasicSettings::on_core_settings_clicked() {
         Configs::dataStore->core_box_clash_api = core_box_clash_api->text().toInt();
         Configs::dataStore->core_box_clash_listen_addr = core_box_clash_listen_addr->text();
         Configs::dataStore->core_box_clash_api_secret = core_box_clash_api_secret->text();
+        Configs::dataStore->naive_core_path = naive_core_path->text();
+        Configs::dataStore->naive_socks_listen_addr = naive_socks_listen_addr->text();
+        Configs::dataStore->naive_socks_port_base = naive_socks_port_base->text().toInt();
+        Configs::dataStore->naive_no_log = naive_no_log->isChecked();
         MW_dialog_message(Dialog_DialogBasicSettings, "UpdateDataStore");
         w->accept();
     });

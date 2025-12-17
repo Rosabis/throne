@@ -230,6 +230,75 @@ namespace Configs {
             ctx->buildConfigResult->extraCoreData->configDir = GetBasePath();
             ctx->buildConfigResult->extraCoreData->noLog = outbound->noLogs;
         }
+
+        // Naive (external core): start naive.exe, sing-box connects to local socks.
+        if (ctx->ent->type == "naive")
+        {
+            auto outbound = dynamic_cast<Configs::naive*>(ctx->ent->outbound.get());
+            if (outbound == nullptr)
+            {
+                MW_show_log("INVALID ENT TYPE, NEEDED NAIVE GOT NULLPTR");
+                ctx->error = "failed to cast to naive, type is: " + ctx->ent->type;
+                return;
+            }
+            if (Configs::dataStore->naive_core_path.trimmed().isEmpty())
+            {
+                ctx->error = "Naive core path is empty. Please set it in Settings -> Core Options.";
+                return;
+            }
+
+            auto listenAddr = Configs::dataStore->naive_socks_listen_addr.trimmed();
+            if (listenAddr.isEmpty()) listenAddr = "127.0.0.1";
+            int base = Configs::dataStore->naive_socks_port_base;
+            if (base <= 0) base = 30000;
+            // Deterministic port per (server, port, username) to avoid collisions and
+            // keep it consistent with naive::Build() which uses the same hash formula.
+            uint h = qHash(outbound->server + ":" + Int2String(outbound->server_port) + ":" + outbound->username);
+            int listenPort = base + (int)(h % 10000);
+            if (listenPort <= 0 || listenPort > 65535) listenPort = 30000;
+
+            // Build args following nekoray style.
+            // Note: certificate via env (SSL_CERT_FILE) is not supported by current core extra process runner.
+            QStringList args;
+            if (!Configs::dataStore->naive_no_log && !outbound->disable_log) args << "--log";
+            args << ("--listen=socks://" + listenAddr + ":" + Int2String(listenPort));
+
+            auto domain_address = outbound->sni.trimmed().isEmpty() ? outbound->server : outbound->sni.trimmed();
+            auto connect_address = outbound->server;
+            auto connect_port = outbound->server_port;
+            domain_address = WrapIPV6Host(domain_address);
+            connect_address = WrapIPV6Host(connect_address);
+
+            QUrl proxy_url;
+            proxy_url.setScheme(outbound->protocol);
+            proxy_url.setUserName(outbound->username);
+            proxy_url.setPassword(outbound->password);
+            proxy_url.setPort(connect_port);
+            proxy_url.setHost(domain_address);
+            args << ("--proxy=" + proxy_url.toString(QUrl::FullyEncoded));
+
+            if (domain_address != connect_address)
+            {
+                args << ("--host-resolver-rules=MAP " + domain_address + " " + connect_address);
+            }
+            if (outbound->insecure_concurrency > 0)
+            {
+                args << ("--insecure-concurrency=" + Int2String(outbound->insecure_concurrency));
+            }
+            if (!outbound->extra_headers.trimmed().isEmpty())
+            {
+                args << ("--extra-headers=" + outbound->extra_headers);
+            }
+
+            ctx->buildConfigResult->extraCoreData->path = QFileInfo(Configs::dataStore->naive_core_path).canonicalFilePath();
+            ctx->buildConfigResult->extraCoreData->args = QStringList2Command(args).trimmed();
+            ctx->buildConfigResult->extraCoreData->config = ""; // not used for naive by default
+            ctx->buildConfigResult->extraCoreData->configDir = GetBasePath();
+            ctx->buildConfigResult->extraCoreData->noLog = Configs::dataStore->naive_no_log;
+            
+            MW_show_log(QString("Naive: will start naive.exe on %1:%2, sing-box will connect to socks://%1:%2")
+                        .arg(listenAddr, Int2String(listenPort)));
+        }
     }
 
     void buildLogSections(std::shared_ptr<BuildSingBoxConfigContext> &ctx) {
@@ -935,6 +1004,42 @@ namespace Configs {
             if (item->type == "tailscale")
             {
                 MW_show_log("Skipping Tailscale conf");
+                continue;
+            }
+            // Handle Naive nodes separately - they need extra process
+            if (item->type == "naive")
+            {
+                auto naiveCtx = std::make_shared<BuildSingBoxConfigContext>();
+                naiveCtx->forTest = true;
+                naiveCtx->ent = item;
+                CalculatePrerequisities(naiveCtx);
+                if (!naiveCtx->error.isEmpty())
+                {
+                    MW_show_log("Failed to build Naive test config: " + naiveCtx->error);
+                    item->latency = -1;
+                    continue;
+                }
+                buildDNSSection(naiveCtx);
+                buildLogSections(naiveCtx);
+                buildCertificateSection(naiveCtx);
+                buildNTPSection(naiveCtx);
+                buildOutboundsSection(naiveCtx);
+                if (!naiveCtx->error.isEmpty())
+                {
+                    MW_show_log("Failed to build Naive test config: " + naiveCtx->error);
+                    item->latency = -1;
+                    continue;
+                }
+                buildRouteSection(naiveCtx);
+                if (!naiveCtx->error.isEmpty())
+                {
+                    MW_show_log("Failed to build Naive test config: " + naiveCtx->error);
+                    item->latency = -1;
+                    continue;
+                }
+                // Store the config and extraCoreData for this Naive node
+                res->fullConfigs[item->id] = QJsonObject2QString(naiveCtx->buildConfigResult->coreConfig, true);
+                res->nodeExtraCoreData[item->id] = naiveCtx->buildConfigResult->extraCoreData;
                 continue;
             }
             if (!IsValid(item)) {

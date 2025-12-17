@@ -287,6 +287,7 @@ namespace Configs {
         _add(new configItem("net_insecure", &net_insecure, itemType::boolean));
         _add(new configItem("sub_auto_update", &sub_auto_update, itemType::integer));
         _add(new configItem("sub_send_hwid", &sub_send_hwid, itemType::boolean));
+        _add(new configItem("sub_custom_hwid_params", &sub_custom_hwid_params, itemType::string));
         _add(new configItem("start_minimal", &start_minimal, itemType::boolean));
         _add(new configItem("max_log_line", &max_log_line, itemType::integer));
         _add(new configItem("splitter_state", &splitter_state, itemType::string));
@@ -295,6 +296,10 @@ namespace Configs {
         _add(new configItem("core_box_clash_listen_addr", &core_box_clash_listen_addr, itemType::string));
         _add(new configItem("core_box_clash_api_secret", &core_box_clash_api_secret, itemType::string));
         _add(new configItem("core_box_underlying_dns", &core_box_underlying_dns, itemType::string));
+        _add(new configItem("naive_core_path", &naive_core_path, itemType::string));
+        _add(new configItem("naive_socks_listen_addr", &naive_socks_listen_addr, itemType::string));
+        _add(new configItem("naive_socks_port_base", &naive_socks_port_base, itemType::integer));
+        _add(new configItem("naive_no_log", &naive_no_log, itemType::boolean));
         _add(new configItem("enable_ntp", &enable_ntp, itemType::boolean));
         _add(new configItem("ntp_server_address", &ntp_server_address, itemType::string));
         _add(new configItem("ntp_server_port", &ntp_server_port, itemType::integer));

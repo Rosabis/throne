@@ -156,6 +156,8 @@ namespace Configs
         QMap<QString, int> tag2entID;
         QJsonObject coreConfig;
         QStringList outboundTags;
+        // For nodes that need extra process (e.g., naive), store their extraCoreData
+        QMap<int, std::shared_ptr<ExtraCoreData>> nodeExtraCoreData;
     };
 
     bool IsValid(const std::shared_ptr<ProxyEntity> &ent);

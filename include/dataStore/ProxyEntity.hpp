@@ -11,6 +11,7 @@
 #include "include/configs/outbounds/socks.h"
 #include "include/configs/outbounds/http.h"
 #include "include/configs/outbounds/hysteria.h"
+#include "include/configs/outbounds/naive.h"
 #include "include/configs/outbounds/shadowsocks.h"
 #include "include/configs/outbounds/ssh.h"
 #include "include/configs/outbounds/trojan.h"
@@ -77,6 +78,10 @@ namespace Configs {
 
         [[nodiscard]] Configs::hysteria *Hysteria() const {
             return dynamic_cast<Configs::hysteria *>(outbound.get());
+        };
+
+        [[nodiscard]] Configs::naive *Naive() const {
+            return dynamic_cast<Configs::naive *>(outbound.get());
         };
 
         [[nodiscard]] Configs::ssh *SSH() const {
