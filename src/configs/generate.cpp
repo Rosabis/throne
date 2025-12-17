@@ -247,12 +247,14 @@ namespace Configs {
                 return;
             }
 
-            // Deterministic port per profile id to avoid random collisions.
             auto listenAddr = Configs::dataStore->naive_socks_listen_addr.trimmed();
             if (listenAddr.isEmpty()) listenAddr = "127.0.0.1";
             int base = Configs::dataStore->naive_socks_port_base;
             if (base <= 0) base = 30000;
-            int listenPort = base + (ctx->ent->id % 10000);
+            // Deterministic port per (server, port, username) to avoid collisions and
+            // keep it consistent with naive::Build() which uses the same hash formula.
+            uint h = qHash(outbound->server + ":" + Int2String(outbound->server_port) + ":" + outbound->username);
+            int listenPort = base + (int)(h % 10000);
             if (listenPort <= 0 || listenPort > 65535) listenPort = 30000;
 
             // Build args following nekoray style.
@@ -289,7 +291,7 @@ namespace Configs {
             }
 
             ctx->buildConfigResult->extraCoreData->path = QFileInfo(Configs::dataStore->naive_core_path).canonicalFilePath();
-            ctx->buildConfigResult->extraCoreData->args = QStringList2Command(QStringList{} << args).trimmed();
+            ctx->buildConfigResult->extraCoreData->args = QStringList2Command(args).trimmed();
             ctx->buildConfigResult->extraCoreData->config = ""; // not used for naive by default
             ctx->buildConfigResult->extraCoreData->configDir = GetBasePath();
             ctx->buildConfigResult->extraCoreData->noLog = Configs::dataStore->naive_no_log;
