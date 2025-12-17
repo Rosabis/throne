@@ -88,9 +88,12 @@ namespace Configs {
         return "Naive";
     }
 
+    // Naive 在 sing-box 中是普通 outbound 类型，而不是 endpoint。
+    // 这里返回 false，确保生成的配置放到 \"outbounds\" 数组里，
+    // 避免出现 \"unknown endpoint type: naive\" 的错误。
     bool naive::IsEndpoint()
     {
-        return true;
+        return false;
     }
 }
 
