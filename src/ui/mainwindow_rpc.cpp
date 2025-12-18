@@ -170,6 +170,17 @@ void MainWindow::urltest_current_group(const QList<std::shared_ptr<Configs::Prox
                 QProcess *extraProcess = nullptr;
                 QString mieruConfigPath;
                 
+                // Debug: log extraCoreData status
+                if (ent != nullptr) {
+                    if (extraCoreData == nullptr) {
+                        MW_show_log(QString("[URL Test] Node %1 (%2): extraCoreData is nullptr").arg(entID).arg(ent->type));
+                    } else if (extraCoreData->path.isEmpty()) {
+                        MW_show_log(QString("[URL Test] Node %1 (%2): extraCoreData path is empty").arg(entID).arg(ent->type));
+                    } else {
+                        MW_show_log(QString("[URL Test] Node %1 (%2): Will start external process: %3").arg(entID).arg(ent->type).arg(extraCoreData->path));
+                    }
+                }
+                
                 if (ent != nullptr && ent->type == "mieru") {
                     // Mieru needs special handling: stop → apply config → start
                     QString exePath = QFileInfo(Configs::dataStore->mieru_core_path).canonicalFilePath();
@@ -212,12 +223,14 @@ void MainWindow::urltest_current_group(const QList<std::shared_ptr<Configs::Prox
                     }
                     extraProcess->setProgram(extraCoreData->path);
                     extraProcess->setArguments(args);
+                    MW_show_log(QString("[URL Test] Starting external process: %1 %2").arg(extraCoreData->path).arg(args.join(" ")));
                     extraProcess->start();
                     if (!extraProcess->waitForStarted(5000)) {
-                        MW_show_log(tr("Failed to start external process for testing"));
+                        MW_show_log(QString("[URL Test] Failed to start external process: %1, error: %2").arg(extraCoreData->path).arg(extraProcess->errorString()));
                         delete extraProcess;
                         extraProcess = nullptr;
                     } else {
+                        MW_show_log(QString("[URL Test] External process started successfully, waiting 2000ms for it to be ready..."));
                         // 外部核心（尤其是 Juicity）启动 socks 监听比 naive 慢一点，
                         // 这里多等一会儿，避免 URL 测试刚开始就被拒绝连接。
                         QThread::msleep(2000); // Wait for process to be ready
