@@ -155,9 +155,6 @@ set(PROJECT_SOURCES
         include/ui/profile/edit_socks.h
         src/ui/profile/edit_socks.cpp
         include/ui/profile/edit_socks.ui
-        include/ui/profile/edit_naive.h
-        src/ui/profile/edit_naive.cpp
-        include/ui/profile/edit_naive.ui
         include/ui/profile/edit_hysteria.h
         src/ui/profile/edit_hysteria.cpp
         include/ui/profile/edit_hysteria.ui
@@ -246,7 +243,6 @@ set(PROJECT_SOURCES
         src/configs/common/Outbound.cpp
         include/configs/outbounds/socks.h
         include/configs/outbounds/http.h
-        include/configs/outbounds/naive.h
         include/configs/outbounds/shadowsocks.h
         include/configs/outbounds/vmess.h
         include/configs/outbounds/trojan.h
@@ -262,7 +258,6 @@ set(PROJECT_SOURCES
         src/configs/outbounds/hysteria.cpp
         src/configs/outbounds/shadowsocks.cpp
         src/configs/outbounds/socks.cpp
-        src/configs/outbounds/naive.cpp
         src/configs/outbounds/ssh.cpp
         src/configs/outbounds/tailscale.cpp
         src/configs/outbounds/trojan.cpp
@@ -280,9 +275,6 @@ set(PROJECT_SOURCES
         include/ui/profile/edit_socks.h
         src/ui/profile/edit_socks.cpp
         include/ui/profile/edit_socks.ui
-        include/ui/profile/edit_naive.h
-        src/ui/profile/edit_naive.cpp
-        include/ui/profile/edit_naive.ui
         include/ui/profile/edit_http.h
         src/ui/profile/edit_http.cpp
         include/ui/profile/edit_http.ui
@@ -298,9 +290,6 @@ set(PROJECT_SOURCES
         include/ui/profile/edit_advanced.h
         src/ui/profile/edit_advanced.cpp
         include/ui/profile/edit_advanced.ui
-        include/configs/common/xrayStreamSetting.h
-        include/configs/outbounds/xrayVless.h
-        include/configs/common/xrayMultiplex.h
 )
 
 if (NOT APPLE AND Qt6_VERSION VERSION_GREATER_EQUAL 6.9.0)
