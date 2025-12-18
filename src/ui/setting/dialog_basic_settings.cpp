@@ -70,7 +70,7 @@ DialogBasicSettings::DialogBasicSettings(QWidget *parent)
     // Style
     ui->connection_statistics->setChecked(Configs::dataStore->enable_stats);
     ui->show_sys_dns->setChecked(Configs::dataStore->show_system_dns);
-    connect(ui->show_sys_dns, &QCheckBox::stateChanged, this, [=]
+    connect(ui->show_sys_dns, &QCheckBox::stateChanged, this, [this]
     {
         CACHE.updateSystemDns = true;
     });
@@ -155,7 +155,7 @@ DialogBasicSettings::DialogBasicSettings(QWidget *parent)
     D_LOAD_BOOL(sub_clear)
     D_LOAD_BOOL(net_insecure)
     D_LOAD_BOOL(sub_send_hwid)
-    D_LOAD_STRING(sub_custom_hwid_params)
+    // D_LOAD_STRING(sub_custom_hwid_params) // UI control not available
     D_LOAD_INT_ENABLE(sub_auto_update, sub_auto_update_enable)
     auto details = GetDeviceDetails();
 	ui->sub_send_hwid->setToolTip(
@@ -254,7 +254,7 @@ void DialogBasicSettings::accept() {
     D_SAVE_BOOL(sub_clear)
     D_SAVE_BOOL(net_insecure)
     D_SAVE_BOOL(sub_send_hwid)
-    D_SAVE_STRING(sub_custom_hwid_params)
+    // D_SAVE_STRING(sub_custom_hwid_params) // UI control not available
     D_SAVE_INT_ENABLE(sub_auto_update, sub_auto_update_enable)
 
     // Core
