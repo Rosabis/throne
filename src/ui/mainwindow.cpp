@@ -1711,14 +1711,73 @@ void  MainWindow::on_menu_delete_repeat_triggered () {
         return;
     }
 
-    QList<std::shared_ptr<Configs::ProxyEntity>> out;
     QList<std::shared_ptr<Configs::ProxyEntity>> out_del;
 
-    Configs::ProfileFilter::Uniq(allEnts, out, false);
-    Configs::ProfileFilter::OnlyInSrc(allEnts, out, out_del);
+    // Use a simpler approach: group by normalized key, then mark duplicates
+    QMap<QString, QList<std::shared_ptr<Configs::ProxyEntity>>> keyToEnts;
+    
+    // Helper function to generate normalized key (same as ProfileFilter_ent_key)
+    auto getNormalizedKey = [](const std::shared_ptr<Configs::ProxyEntity> &ent) -> QString {
+        auto json = ent->outbound->ExportToJson();
+        json.remove("tag");
+        json.remove("name");
+        
+        // Normalize JSON: sort keys
+        QJsonObject normalized;
+        QStringList keys = json.keys();
+        keys.sort();
+        for (const QString &key : keys) {
+            auto value = json[key];
+            // Recursively normalize nested objects
+            if (value.isObject()) {
+                QJsonObject nestedNormalized;
+                QStringList nestedKeys = value.toObject().keys();
+                nestedKeys.sort();
+                for (const QString &nestedKey : nestedKeys) {
+                    auto nestedValue = value.toObject()[nestedKey];
+                    if (!nestedValue.isNull() && !(nestedValue.isString() && nestedValue.toString().isEmpty())) {
+                        nestedNormalized[nestedKey] = nestedValue;
+                    }
+                }
+                if (!nestedNormalized.isEmpty()) {
+                    normalized[key] = nestedNormalized;
+                }
+            } else if (!value.isNull() && !(value.isString() && value.toString().isEmpty())) {
+                normalized[key] = value;
+            }
+        }
+        
+        QUrl url;
+        url.setScheme("json");
+        url.setHost("throne");
+        url.setFragment(QJsonObject2QString(normalized, true)
+                            .toUtf8()
+                            .toBase64(QByteArray::Base64UrlEncoding));
+        return url.toString();
+    };
+    
+    // Group all entities by their normalized key
+    for (const auto &ent: allEnts) {
+        QString key = getNormalizedKey(ent);
+        keyToEnts[key] += ent;
+    }
+    
+    // Find duplicates: for each key with multiple entries, keep the first, mark others as duplicates
+    int uniqueCount = 0;
+    for (auto it = keyToEnts.begin(); it != keyToEnts.end(); ++it) {
+        if (it.value().length() > 1) {
+            // This key has duplicates, keep the first one, mark the rest as duplicates
+            uniqueCount++;
+            for (int i = 1; i < it.value().length(); i++) {
+                out_del += it.value()[i];
+            }
+        } else {
+            uniqueCount++;
+        }
+    }
 
     // Debug: Log the number of unique profiles and duplicates found
-    MW_show_log(tr("Total profiles: %1, Unique: %2, Duplicates: %3").arg(allEnts.length()).arg(out.length()).arg(out_del.length()));
+    MW_show_log(tr("Total profiles: %1, Unique keys: %2, Duplicates: %3").arg(allEnts.length()).arg(uniqueCount).arg(out_del.length()));
 
     if (out_del.empty()) {
         MW_show_log(tr("No duplicate profiles found"));
