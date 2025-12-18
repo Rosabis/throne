@@ -4,16 +4,40 @@
 
 namespace Configs {
 
+    static QJsonObject normalizeJsonObject(const QJsonObject &obj) {
+        QJsonObject normalized;
+        QStringList keys = obj.keys();
+        keys.sort();
+        for (const QString &key : keys) {
+            auto value = obj[key];
+            // Recursively normalize nested objects
+            if (value.isObject()) {
+                normalized[key] = normalizeJsonObject(value.toObject());
+            } else if (value.isArray()) {
+                // For arrays, we keep them as-is for now
+                normalized[key] = value;
+            } else if (!value.isNull() && !(value.isString() && value.toString().isEmpty())) {
+                // Skip null and empty strings, but keep other values
+                normalized[key] = value;
+            }
+        }
+        return normalized;
+    }
+
     QString ProfileFilter_ent_key(const std::shared_ptr<Configs::ProxyEntity> &ent) {
         // Export JSON without name field for duplicate detection
         auto json = ent->outbound->ExportToJson();
         // Remove name/tag field to ignore it in duplicate detection
         json.remove("tag");
         json.remove("name");
+        
+        // Normalize JSON: sort keys and normalize nested objects
+        QJsonObject normalized = normalizeJsonObject(json);
+        
         QUrl url;
         url.setScheme("json");
         url.setHost("throne");
-        url.setFragment(QJsonObject2QString(json, true)
+        url.setFragment(QJsonObject2QString(normalized, true)
                             .toUtf8()
                             .toBase64(QByteArray::Base64UrlEncoding));
         return url.toString();

@@ -1717,6 +1717,9 @@ void  MainWindow::on_menu_delete_repeat_triggered () {
     Configs::ProfileFilter::Uniq(allEnts, out, false);
     Configs::ProfileFilter::OnlyInSrc(allEnts, out, out_del);
 
+    // Debug: Log the number of unique profiles and duplicates found
+    MW_show_log(tr("Total profiles: %1, Unique: %2, Duplicates: %3").arg(allEnts.length()).arg(out.length()).arg(out_del.length()));
+
     if (out_del.empty()) {
         MW_show_log(tr("No duplicate profiles found"));
         return;
