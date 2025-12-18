@@ -137,14 +137,6 @@ jobs:
           ninja
           cd ..
           ./script/deploy_woa.sh
-      - name: Build Installer with NSIS
-        shell: cmd
-        if: matrix.platform == 'windows-latest' && matrix.qt_version == '6.2.12'
-        run: |
-          choco install nsis
-          cp .\script\windows_installer.nsi .
-          "C:\Program Files (x86)\NSIS\makensis.exe" windows_installer.nsi
-          cp ThroneSetup.exe deployment/
       - name: Linux - Generate MakeFile and Build
         shell: bash
         if: contains( matrix.platform, 'ubuntu' ) && matrix.qt_version != '6.2.0'
@@ -224,7 +216,6 @@ jobs:
           find . -name artifacts.tgz | xargs -n1 tar xvzf
           cd deployment
           rm -rf *.pdb win*/*.pdb
-          mv ThroneSetup.exe $version_standalone-windows64-installer.exe
           mv windowslegacy64 Throne
           zip -9 -r $version_standalone-windows64.zip Throne
           rm -rf Throne
