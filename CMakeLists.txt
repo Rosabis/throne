@@ -241,9 +241,10 @@ set(PROJECT_SOURCES
         src/configs/common/multiplex.cpp
         src/configs/common/transport.cpp
         src/configs/common/Outbound.cpp
-        include/configs/outbounds/socks.h
-        include/configs/outbounds/http.h
-        include/configs/outbounds/shadowsocks.h
+         include/configs/outbounds/socks.h
+         include/configs/outbounds/http.h
+         include/configs/outbounds/naive.h
+         include/configs/outbounds/shadowsocks.h
         include/configs/outbounds/vmess.h
         include/configs/outbounds/trojan.h
         include/configs/outbounds/hysteria.h
@@ -253,9 +254,10 @@ set(PROJECT_SOURCES
         include/configs/outbounds/ssh.h
         
         # outbounds impl
-        src/configs/outbounds/anyTLS.cpp
-        src/configs/outbounds/http.cpp
-        src/configs/outbounds/hysteria.cpp
+         src/configs/outbounds/anyTLS.cpp
+         src/configs/outbounds/http.cpp
+         src/configs/outbounds/naive.cpp
+         src/configs/outbounds/hysteria.cpp
         src/configs/outbounds/shadowsocks.cpp
         src/configs/outbounds/socks.cpp
         src/configs/outbounds/ssh.cpp
@@ -275,6 +277,9 @@ set(PROJECT_SOURCES
         include/ui/profile/edit_socks.h
         src/ui/profile/edit_socks.cpp
         include/ui/profile/edit_socks.ui
+        include/ui/profile/edit_naive.h
+        src/ui/profile/edit_naive.cpp
+        include/ui/profile/edit_naive.ui
         include/ui/profile/edit_http.h
         src/ui/profile/edit_http.cpp
         include/ui/profile/edit_http.ui
