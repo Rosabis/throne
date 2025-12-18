@@ -76,8 +76,8 @@ namespace Configs {
         if (object.contains("mtu")) mtu = object["mtu"].toInt();
         if (object.contains("multiplexing")) multiplexing = object["multiplexing"].toString();
         if (object.contains("handshake_mode")) handshake_mode = object["handshake_mode"].toString();
-        if (object.contains("port_bindings")) port_bindings = QListStr2QJsonArray(object["port_bindings"].toArray());
-        if (object.contains("protocols")) protocols = QListStr2QJsonArray(object["protocols"].toArray());
+        if (object.contains("port_bindings")) port_bindings = QJsonArray2QListString(object["port_bindings"].toArray());
+        if (object.contains("protocols")) protocols = QJsonArray2QListString(object["protocols"].toArray());
         return true;
     }
 
