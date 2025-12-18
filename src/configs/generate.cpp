@@ -9,6 +9,7 @@
 #include <QApplication>
 #include <QFileInfo>
 #include <QUrlQuery>
+#include <QDir>
 
 namespace Configs {
 
