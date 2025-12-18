@@ -180,6 +180,8 @@ private:
     QString title_error;
     int icon_status = -1;
     std::shared_ptr<Configs::ProxyEntity> running;
+    // 持久运行的 naive.exe 进程（连接某个 Naive 节点时使用），停止节点时会被杀掉
+    QProcess *naive_process = nullptr;
     QString traffic_update_cache;
     qint64 last_test_time = 0;
     //

@@ -654,8 +654,8 @@ void MainWindow::profile_start(int _id) {
         req.core_config = QJsonObject2QString(result->coreConfig, true).toStdString();
         req.disable_stats = Configs::dataStore->disable_traffic_stats;
 
-        // 对于 extracore / naive / juicity / shadowquic 交给 sing-box 的 extra process 机制托管生命周期
-        if (ent->type == "extracore" || ent->type == "naive" || ent->type == "juicity" || ent->type == "shadowquic")
+        // 对于 extracore / juicity / shadowquic 交给 sing-box 的 extra process 机制托管生命周期
+        if (ent->type == "extracore" || ent->type == "juicity" || ent->type == "shadowquic")
         {
             req.need_extra_process = true;
             req.extra_process_path = result->extraCoreData->path.toStdString();
@@ -664,6 +664,50 @@ void MainWindow::profile_start(int _id) {
             req.extra_process_conf_dir = result->extraCoreData->configDir.toStdString();
             req.extra_no_out = result->extraCoreData->noLog;
         }
+        // 对于 Naive，不使用 sing-box 的 extra process，由 Throne 自己托管 naive.exe 的生命周期
+        if (ent->type == "naive")
+        {
+            // 先清理旧的进程（如果有）
+            if (naive_process != nullptr)
+            {
+                naive_process->terminate();
+                if (!naive_process->waitForFinished(3000)) {
+                    naive_process->kill();
+                }
+                delete naive_process;
+                naive_process = nullptr;
+            }
+
+            auto extra = result->extraCoreData;
+            if (extra != nullptr && !extra->path.isEmpty())
+            {
+                naive_process = new QProcess(this);
+                QStringList args;
+                if (!extra->args.isEmpty())
+                {
+#if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
+                    args = QProcess::splitCommand(extra->args);
+#else
+                    args = extra->args.split(' ', Qt::SkipEmptyParts);
+#endif
+                }
+                naive_process->setProgram(extra->path);
+                naive_process->setArguments(args);
+                MW_show_log(QStringLiteral("Starting naive.exe: %1 %2")
+                            .arg(extra->path, extra->args));
+                naive_process->start();
+                if (!naive_process->waitForStarted(5000))
+                {
+                    MW_show_log(tr("Failed to start naive.exe for profile"));
+                    delete naive_process;
+                    naive_process = nullptr;
+                    return false;
+                }
+                // 等待一小会，让本地 socks 口起来
+                QThread::msleep(500);
+            }
+        }
+
         // 对于 Mieru，不使用 sing-box 的 extra process，而是像你手动那样：stop → apply config → start
         if (ent->type == "mieru")
         {
@@ -850,7 +894,17 @@ void MainWindow::profile_stop(bool crash, bool block, bool manual) {
                 QProcess::execute(exePath, QStringList() << "stop");
             }
         }
-        
+        // 对于 Naive，杀掉由 Throne 托管的 naive.exe 进程
+        if (naive_process != nullptr) {
+            MW_show_log("Stopping naive.exe process...");
+            naive_process->terminate();
+            if (!naive_process->waitForFinished(3000)) {
+                naive_process->kill();
+            }
+            delete naive_process;
+            naive_process = nullptr;
+        }
+
         if (!crash) {
             bool rpcOK;
             QString error = defaultClient->Stop(&rpcOK);
