@@ -8,16 +8,62 @@
 namespace Configs {
     bool juicity::ParseFromLink(const QString& link)
     {
-        auto url = QUrl(link);
-        if (!url.isValid()) return false;
+        // 先用 QUrl 校验基本格式和拿到 fragment（节点名称），然后手动解析 authority，兼容官方 juicity / tuic 链接格式：
+        // juicity://uuid:password@example.com:port?congestion_control=...
+        // juicity://uuid:password@122.12.31.66:port?...
+        QUrl url(link);
+        if (!url.isValid() || url.scheme() != "juicity")
+            return false;
 
-        // Parse juicity:// format
-        if (url.scheme() != "juicity") return false;
+        // 解析名称（#后面的备注）
+        if (url.hasFragment())
+            name = url.fragment(QUrl::FullyDecoded);
 
-        outbound::ParseFromLink(link);
-        uuid = url.userName();
-        password = url.password();
+        // 去掉前缀和 query，只保留 authority 部分：uuid:password@example.com:port / uuid:password@ip:port
+        QString withoutScheme = link.mid(QStringLiteral("juicity://").size());
+        int qPos = withoutScheme.indexOf('?');
+        QString authority = qPos >= 0 ? withoutScheme.left(qPos) : withoutScheme;
 
+        // 拆出端口：最后一个 ':' 之后
+        int lastColon = authority.lastIndexOf(':');
+        if (lastColon <= 0)
+            return false;
+        QString portStr = authority.mid(lastColon + 1);
+        bool okPort = false;
+        int port = portStr.toInt(&okPort);
+        if (!okPort || port <= 0 || port > 65535)
+            return false;
+
+        // 剩下的是 uuid 和 password@host 这一段
+        QString left = authority.left(lastColon);              // uuid:password@example.com  或  uuid:password@ip
+        int firstColon = left.indexOf(':');
+        if (firstColon <= 0)
+            return false;
+
+        QString uuidStr = left.left(firstColon);               // uuid
+        QString mid = left.mid(firstColon + 1);                // password@example.com / password@ip / 仅 password
+
+        QString passwordStr;
+        QString hostStr;
+        int atPos = mid.indexOf('@');
+        if (atPos >= 0) {
+            passwordStr = mid.left(atPos);
+            hostStr = mid.mid(atPos + 1);
+        } else {
+            // 退化情况：没有 @，尽量从 QUrl 里取 host，密码就整段使用
+            passwordStr = mid;
+            hostStr = url.host();
+        }
+
+        uuid = uuidStr.trimmed();
+        password = passwordStr;
+        server = hostStr.trimmed();
+        server_port = port;
+
+        if (uuid.isEmpty() || password.isEmpty() || server.isEmpty())
+            return false;
+
+        // 解析 query，识别通用 TUIC 字段，其余原样保存到 extra_params（如 sni / allow_insecure / pinned_certchain_sha256 等）
         QUrlQuery query(url.query());
         if (query.hasQueryItem("congestion_control")) {
             congestion_control = query.queryItemValue("congestion_control");
@@ -28,11 +74,13 @@ namespace Configs {
             query.removeAllQueryItems("udp_relay_mode");
         }
         if (query.hasQueryItem("udp_over_stream")) {
-            udp_over_stream = query.queryItemValue("udp_over_stream") == "true" || query.queryItemValue("udp_over_stream") == "1";
+            auto v = query.queryItemValue("udp_over_stream");
+            udp_over_stream = (v == "true" || v == "1");
             query.removeAllQueryItems("udp_over_stream");
         }
         if (query.hasQueryItem("zero_rtt_handshake")) {
-            zero_rtt_handshake = query.queryItemValue("zero_rtt_handshake") == "true" || query.queryItemValue("zero_rtt_handshake") == "1";
+            auto v = query.queryItemValue("zero_rtt_handshake");
+            zero_rtt_handshake = (v == "true" || v == "1");
             query.removeAllQueryItems("zero_rtt_handshake");
         }
         if (query.hasQueryItem("heartbeat")) {
@@ -43,7 +91,7 @@ namespace Configs {
         // 其余未识别字段原样保留，避免丢失 sni、allow_insecure、pinned_certchain_sha256 等参数
         extra_params = query.toString(QUrl::FullyEncoded);
 
-        return !(uuid.isEmpty() || password.isEmpty() || server.isEmpty());
+        return true;
     }
 
     bool juicity::ParseFromJson(const QJsonObject& object)
