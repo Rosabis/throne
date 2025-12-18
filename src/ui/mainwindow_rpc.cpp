@@ -261,15 +261,52 @@ void MainWindow::urltest_current_group(const QList<std::shared_ptr<Configs::Prox
                     }
                 } else if (extraCoreData != nullptr && !extraCoreData->path.isEmpty()) {
                     // For Naive/Juicity/ShadowQUIC, use extraCoreData
+                    // First, create config file if needed (for protocols that use %s placeholder)
+                    QString configFilePath;
+                    if (!extraCoreData->config.isEmpty() && extraCoreData->args.contains("%s")) {
+                        QString baseDir = extraCoreData->configDir;
+                        if (baseDir.isEmpty()) baseDir = QDir::currentPath();
+                        QDir dir(baseDir);
+                        if (!dir.exists()) dir.mkpath(".");
+                        
+                        QString configFileName;
+                        if (ent != nullptr) {
+                            if (ent->type == "juicity") {
+                                configFileName = QString("juicity_test_%1.json").arg(entID);
+                            } else if (ent->type == "shadowquic") {
+                                configFileName = QString("shadowquic_test_%1.yaml").arg(entID);
+                            } else {
+                                configFileName = QString("extra_test_%1.json").arg(entID);
+                            }
+                        } else {
+                            configFileName = QString("extra_test_%1.json").arg(entID);
+                        }
+                        configFilePath = dir.filePath(configFileName);
+                        
+                        QFile f(configFilePath);
+                        if (f.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text)) {
+                            f.write(extraCoreData->config.toUtf8());
+                            f.close();
+                            MW_show_log(QString("[URL Test] Created config file: %1").arg(configFilePath));
+                        } else {
+                            MW_show_log(QString("[URL Test] Failed to create config file: %1").arg(configFilePath));
+                        }
+                    }
+                    
                     extraProcess = new QProcess();
                     QStringList args;
                     if (!extraCoreData->args.isEmpty()) {
+                        QString argsStr = extraCoreData->args;
+                        // Replace %s with actual config file path if we created one
+                        if (!configFilePath.isEmpty()) {
+                            argsStr = argsStr.replace("%s", configFilePath);
+                        }
                         // Use QProcess::splitCommand if available (Qt 5.15+), otherwise simple split
                         #if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
-                        args = QProcess::splitCommand(extraCoreData->args);
+                        args = QProcess::splitCommand(argsStr);
                         #else
                         // Simple split for older Qt versions (may not handle quotes correctly)
-                        args = extraCoreData->args.split(' ', Qt::SkipEmptyParts);
+                        args = argsStr.split(' ', Qt::SkipEmptyParts);
                         #endif
                     }
                     extraProcess->setProgram(extraCoreData->path);
@@ -314,12 +351,35 @@ void MainWindow::urltest_current_group(const QList<std::shared_ptr<Configs::Prox
                 // Run the test
                 MainWindow::runURLTest(configStr, true, {}, {}, entID);
                 // Stop external process after test
+                QString configFilePathToClean; // Capture config file path for cleanup
+                if (extraCoreData != nullptr && !extraCoreData->config.isEmpty() && extraCoreData->args.contains("%s")) {
+                    QString baseDir = extraCoreData->configDir;
+                    if (baseDir.isEmpty()) baseDir = QDir::currentPath();
+                    QDir dir(baseDir);
+                    QString configFileName;
+                    if (ent != nullptr) {
+                        if (ent->type == "juicity") {
+                            configFileName = QString("juicity_test_%1.json").arg(entID);
+                        } else if (ent->type == "shadowquic") {
+                            configFileName = QString("shadowquic_test_%1.yaml").arg(entID);
+                        } else {
+                            configFileName = QString("extra_test_%1.json").arg(entID);
+                        }
+                    } else {
+                        configFileName = QString("extra_test_%1.json").arg(entID);
+                    }
+                    configFilePathToClean = dir.filePath(configFileName);
+                }
                 if (extraProcess != nullptr) {
                     extraProcess->terminate();
                     if (!extraProcess->waitForFinished(3000)) {
                         extraProcess->kill();
                     }
                     delete extraProcess;
+                }
+                // Clean up temp config file if we created one
+                if (!configFilePathToClean.isEmpty() && QFile::exists(configFilePathToClean)) {
+                    QFile::remove(configFilePathToClean);
                 }
                 // Stop mieru after test
                 if (!mieruConfigPath.isEmpty()) {
@@ -456,17 +516,55 @@ void MainWindow::speedtest_current_group(const QList<std::shared_ptr<Configs::Pr
                     }
                 } else if (extraCoreData != nullptr && !extraCoreData->path.isEmpty()) {
                     // For Naive/Juicity/ShadowQUIC, use extraCoreData
+                    // First, create config file if needed (for protocols that use %s placeholder)
+                    QString configFilePath;
+                    if (!extraCoreData->config.isEmpty() && extraCoreData->args.contains("%s")) {
+                        QString baseDir = extraCoreData->configDir;
+                        if (baseDir.isEmpty()) baseDir = QDir::currentPath();
+                        QDir dir(baseDir);
+                        if (!dir.exists()) dir.mkpath(".");
+                        
+                        QString configFileName;
+                        if (ent != nullptr) {
+                            if (ent->type == "juicity") {
+                                configFileName = QString("juicity_test_%1.json").arg(entID);
+                            } else if (ent->type == "shadowquic") {
+                                configFileName = QString("shadowquic_test_%1.yaml").arg(entID);
+                            } else {
+                                configFileName = QString("extra_test_%1.json").arg(entID);
+                            }
+                        } else {
+                            configFileName = QString("extra_test_%1.json").arg(entID);
+                        }
+                        configFilePath = dir.filePath(configFileName);
+                        
+                        QFile f(configFilePath);
+                        if (f.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text)) {
+                            f.write(extraCoreData->config.toUtf8());
+                            f.close();
+                            MW_show_log(QString("[Speed Test] Created config file: %1").arg(configFilePath));
+                        } else {
+                            MW_show_log(QString("[Speed Test] Failed to create config file: %1").arg(configFilePath));
+                        }
+                    }
+                    
                     extraProcess = new QProcess();
                     QStringList args;
                     if (!extraCoreData->args.isEmpty()) {
+                        QString argsStr = extraCoreData->args;
+                        // Replace %s with actual config file path if we created one
+                        if (!configFilePath.isEmpty()) {
+                            argsStr = argsStr.replace("%s", configFilePath);
+                        }
                         #if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
-                        args = QProcess::splitCommand(extraCoreData->args);
+                        args = QProcess::splitCommand(argsStr);
                         #else
-                        args = extraCoreData->args.split(' ', Qt::SkipEmptyParts);
+                        args = argsStr.split(' ', Qt::SkipEmptyParts);
                         #endif
                     }
                     extraProcess->setProgram(extraCoreData->path);
                     extraProcess->setArguments(args);
+                    MW_show_log(QString("[Speed Test] Starting external process: %1 %2").arg(extraCoreData->path).arg(args.join(" ")));
                     extraProcess->start();
                     if (!extraProcess->waitForStarted(5000)) {
                         MW_show_log(tr("Failed to start external process for speed test"));
@@ -525,12 +623,35 @@ void MainWindow::speedtest_current_group(const QList<std::shared_ptr<Configs::Pr
                 runSpeedTest(configStr, true, false, {}, {}, entID);
                 }
                 // Stop external process after test
+                QString configFilePathToClean; // Capture config file path for cleanup
+                if (extraCoreData != nullptr && !extraCoreData->config.isEmpty() && extraCoreData->args.contains("%s")) {
+                    QString baseDir = extraCoreData->configDir;
+                    if (baseDir.isEmpty()) baseDir = QDir::currentPath();
+                    QDir dir(baseDir);
+                    QString configFileName;
+                    if (ent != nullptr) {
+                        if (ent->type == "juicity") {
+                            configFileName = QString("juicity_test_%1.json").arg(entID);
+                        } else if (ent->type == "shadowquic") {
+                            configFileName = QString("shadowquic_test_%1.yaml").arg(entID);
+                        } else {
+                            configFileName = QString("extra_test_%1.json").arg(entID);
+                        }
+                    } else {
+                        configFileName = QString("extra_test_%1.json").arg(entID);
+                    }
+                    configFilePathToClean = dir.filePath(configFileName);
+                }
                 if (extraProcess != nullptr) {
                     extraProcess->terminate();
                     if (!extraProcess->waitForFinished(3000)) {
                         extraProcess->kill();
                     }
                     delete extraProcess;
+                }
+                // Clean up temp config file if we created one
+                if (!configFilePathToClean.isEmpty() && QFile::exists(configFilePathToClean)) {
+                    QFile::remove(configFilePathToClean);
                 }
                 // Stop mieru after test
                 if (!mieruConfigPath.isEmpty()) {
