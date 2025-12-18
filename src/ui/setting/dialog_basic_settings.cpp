@@ -371,7 +371,7 @@ void DialogBasicSettings::on_core_settings_clicked() {
     juicity_core_path_row->addWidget(juicity_core_path);
     juicity_core_path_row->addWidget(juicity_core_path_pick);
     layout->addLayout(juicity_core_path_row, line, 1);
-    connect(juicity_core_path_pick, &QPushButton::clicked, w, [this, w] {
+    connect(juicity_core_path_pick, &QPushButton::clicked, w, [=] {
         auto f = QFileDialog::getOpenFileName(w, "Select juicity core", QDir::currentPath());
         if (!f.isEmpty()) juicity_core_path->setText(f);
     });
