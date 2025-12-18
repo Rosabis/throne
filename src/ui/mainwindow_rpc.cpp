@@ -14,6 +14,9 @@
 #include <QThread>
 #include <QJsonDocument>
 #include <QJsonParseError>
+#include <QFile>
+#include <QDir>
+#include <QFileInfo>
 
 #include "include/configs/generate.h"
 #include "include/sys/Process.hpp"
@@ -570,7 +573,9 @@ void MainWindow::profile_start(int _id) {
         libcore::LoadConfigReq req;
         req.core_config = QJsonObject2QString(result->coreConfig, true).toStdString();
         req.disable_stats = Configs::dataStore->disable_traffic_stats;
-        if (ent->type == "extracore" || ent->type == "naive" || ent->type == "juicity" || ent->type == "mieru")
+
+        // 对于 naive / juicity 仍然交给 sing-box 的 extra process 机制托管生命周期
+        if (ent->type == "extracore" || ent->type == "naive" || ent->type == "juicity")
         {
             req.need_extra_process = true;
             req.extra_process_path = result->extraCoreData->path.toStdString();
@@ -578,6 +583,50 @@ void MainWindow::profile_start(int _id) {
             req.extra_process_conf = result->extraCoreData->config.toStdString();
             req.extra_process_conf_dir = result->extraCoreData->configDir.toStdString();
             req.extra_no_out = result->extraCoreData->noLog;
+        }
+        // 对于 Mieru，不使用 sing-box 的 extra process，而是像你手动那样：stop → apply config → start
+        if (ent->type == "mieru")
+        {
+            auto extra = result->extraCoreData;
+            if (extra != nullptr)
+            {
+                QString baseDir = extra->configDir;
+                if (baseDir.isEmpty())
+                {
+                    baseDir = QDir::currentPath();
+                }
+                QDir dir(baseDir);
+                if (!dir.exists())
+                {
+                    dir.mkpath(".");
+                }
+                QString confPath = dir.filePath(QString("mieru_%1.json").arg(ent->id));
+
+                QFile f(confPath);
+                if (!f.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text))
+                {
+                    runOnUiThread([=, this] {
+                        MessageBoxWarning(tr("Mieru error"), tr("Failed to write mieru config file: %1").arg(confPath));
+                    });
+                    return false;
+                }
+                f.write(extra->config.toUtf8());
+                f.close();
+
+                QString exePath = QFileInfo(Configs::dataStore->mieru_core_path).canonicalFilePath();
+                if (exePath.isEmpty())
+                {
+                    runOnUiThread([=, this] {
+                        MessageBoxWarning(tr("Mieru error"), tr("Mieru core path is empty or invalid."));
+                    });
+                    return false;
+                }
+
+                // 对齐你在命令行的用法：mieru stop → apply config config.json → start
+                QProcess::execute(exePath, QStringList() << "stop");
+                QProcess::execute(exePath, QStringList() << "apply" << "config" << confPath);
+                QProcess::execute(exePath, QStringList() << "start");
+            }
         }
         //
         bool rpcOK;

@@ -427,6 +427,14 @@ namespace Configs {
                 pb["protocol"] = outbound->protocols[i];
                 portBindings.append(pb);
             }
+            // 如果用户没有在节点里配置任何端口绑定，至少给一个默认的绑定，
+            // 否则 mieru 的 ValidateClientConfigPatch 会报 "server port binding is not set"
+            if (portBindings.isEmpty() && outbound->server_port > 0) {
+                QJsonObject pb;
+                pb["port"] = outbound->server_port;
+                pb["protocol"] = "TCP";
+                portBindings.append(pb);
+            }
             serverObj["portBindings"] = portBindings;
             servers.append(serverObj);
             profile["servers"] = servers;
