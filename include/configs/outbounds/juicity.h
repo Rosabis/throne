@@ -1,6 +1,7 @@
 #pragma once
 
 #include "include/configs/common/Outbound.h"
+#include "include/configs/common/TLS.h"
 
 namespace Configs
 {
@@ -14,11 +15,12 @@ namespace Configs
         bool udp_over_stream = false;
         bool zero_rtt_handshake = false;
         QString heartbeat;
-        // 保留未识别的查询参数（如 sni、allow_insecure、pinned_certchain_sha256 等），原样透传给 juicity 客户端
-        QString extra_params;
+        QString pinned_certchain_sha256;
+        std::shared_ptr<TLS> tls = std::make_shared<TLS>();
 
         juicity() : outbound()
         {
+            tls->utls->supported = false;
             _add(new configItem("uuid", &uuid, string));
             _add(new configItem("password", &password, string));
             _add(new configItem("congestion_control", &congestion_control, string));
@@ -26,7 +28,20 @@ namespace Configs
             _add(new configItem("udp_over_stream", &udp_over_stream, boolean));
             _add(new configItem("zero_rtt_handshake", &zero_rtt_handshake, boolean));
             _add(new configItem("heartbeat", &heartbeat, string));
-            _add(new configItem("extra_params", &extra_params, string));
+            _add(new configItem("pinned_certchain_sha256", &pinned_certchain_sha256, string));
+            _add(new configItem("tls", dynamic_cast<JsonStore *>(tls.get()), jsonStore));
+        }
+
+        bool HasTLS() override {
+            return true;
+        }
+
+        bool MustTLS() override {
+            return true;
+        }
+
+        std::shared_ptr<TLS> GetTLS() override {
+            return tls;
         }
 
         // baseConfig overrides

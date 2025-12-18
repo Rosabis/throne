@@ -332,7 +332,7 @@ void MainWindow::speedtest_current_group(const QList<std::shared_ptr<Configs::Pr
                         runSpeedTest(configStr, true, false, {}, {}, entID);
                     }
                 } else {
-                    runSpeedTest(configStr, true, false, {}, {}, entID);
+                runSpeedTest(configStr, true, false, {}, {}, entID);
                 }
                 // Stop naive.exe after test
                 if (naiveProcess != nullptr) {

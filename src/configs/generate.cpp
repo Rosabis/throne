@@ -336,44 +336,21 @@ namespace Configs {
             if (!outbound->congestion_control.isEmpty())
                 jcfg["congestion_control"] = outbound->congestion_control;
 
-            // Parse extra_params for advanced options: sni / allow_insecure / log_level / pinned_certchain_sha256 etc.
-            if (!outbound->extra_params.isEmpty())
+            // TLS settings from outbound->tls
+            if (outbound->tls != nullptr)
             {
-                QUrlQuery extra(outbound->extra_params);
-                const auto items = extra.queryItems();
-                for (const auto &item : items)
-                {
-                    const auto &key = item.first;
-                    const auto &val = item.second;
-                    if (key == "sni")
-                    {
-                        jcfg["sni"] = val;
-                    }
-                    else if (key == "allow_insecure")
-                    {
-                        jcfg["allow_insecure"] = (val == "1" || val.compare("true", Qt::CaseInsensitive) == 0);
-                    }
-                    else if (key == "log_level")
-                    {
-                        jcfg["log_level"] = val;
-                    }
-                    else if (key == "pinned_certchain_sha256")
-                    {
-                        jcfg["pinned_certchain_sha256"] = val;
-                    }
-                    else
-                    {
-                        // 其他未知字段也一并写入配置，避免丢失信息
-                        jcfg[key] = val;
-                    }
-                }
+                if (!outbound->tls->server_name.isEmpty())
+                    jcfg["sni"] = outbound->tls->server_name;
+                if (outbound->tls->insecure)
+                    jcfg["allow_insecure"] = true;
             }
+            
+            // pinned_certchain_sha256
+            if (!outbound->pinned_certchain_sha256.isEmpty())
+                jcfg["pinned_certchain_sha256"] = outbound->pinned_certchain_sha256;
 
-            // 如果链接没有指定 log_level，根据全局开关给一个默认值
-            if (!jcfg.contains("log_level"))
-            {
-                jcfg["log_level"] = Configs::dataStore->juicity_no_log ? "error" : "info";
-            }
+            // 根据全局开关设置 log_level
+            jcfg["log_level"] = Configs::dataStore->juicity_no_log ? "error" : "info";
 
             // 构造 extra.conf 内容
             auto confStr = QJsonObject2QString(jcfg, true);
