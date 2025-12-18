@@ -312,7 +312,6 @@ void DialogBasicSettings::on_core_settings_clicked() {
     MyLineEdit *mieru_socks_listen_addr;
     MyLineEdit *mieru_socks_port_base;
     QCheckBox *mieru_no_log;
-    QCheckBox *juicity_no_log;
     //
     auto core_box_clash_listen_addr_l = new QLabel("Clash Api Listen Address");
     core_box_clash_listen_addr = new MyLineEdit;
