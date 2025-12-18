@@ -56,9 +56,9 @@ namespace Configs {
     BuildResult shadowquic::Build()
     {
         // 外部 shadowquic 提供本地 socks，sing-box 只需要 socks outbound。
-        auto listenAddr = Configs::dataStore->naive_socks_listen_addr.trimmed();
+        auto listenAddr = Configs::dataStore->shadowquic_socks_listen_addr.trimmed();
         if (listenAddr.isEmpty()) listenAddr = "127.0.0.1";
-        int base = Configs::dataStore->naive_socks_port_base;
+        int base = Configs::dataStore->shadowquic_socks_port_base;
         if (base <= 0) base = 33000;
         uint h = qHash(server + ":" + Int2String(server_port) + ":" + username);
         int listenPort = base + (int)(h % 10000);
