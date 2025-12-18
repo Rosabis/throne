@@ -1,9 +1,22 @@
 #include "include/dataStore/ProfileFilter.hpp"
+#include "include/global/Utils.hpp"
+#include <QUrl>
 
 namespace Configs {
 
     QString ProfileFilter_ent_key(const std::shared_ptr<Configs::ProxyEntity> &ent) {
-        return ent->outbound->ExportJsonLink();
+        // Export JSON without name field for duplicate detection
+        auto json = ent->outbound->ExportToJson();
+        // Remove name/tag field to ignore it in duplicate detection
+        json.remove("tag");
+        json.remove("name");
+        QUrl url;
+        url.setScheme("json");
+        url.setHost("throne");
+        url.setFragment(QJsonObject2QString(json, true)
+                            .toUtf8()
+                            .toBase64(QByteArray::Base64UrlEncoding));
+        return url.toString();
     }
 
     void ProfileFilter::Uniq(const QList<std::shared_ptr<ProxyEntity>> &in,
