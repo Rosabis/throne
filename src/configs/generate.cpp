@@ -327,42 +327,68 @@ namespace Configs {
             int listenPort = base + (int)(h % 10000);
             if (listenPort <= 0 || listenPort > 65535) listenPort = 31000;
 
-            // Build args for juicity client
-            QStringList args;
-            if (!Configs::dataStore->juicity_no_log) args << "--log";
-            args << ("--listen=socks://" + listenAddr + ":" + Int2String(listenPort));
+            // Build juicity JSON config (juicity-client.exe run -c config.json)
+            QJsonObject jcfg;
+            jcfg["listen"] = listenAddr + ":" + Int2String(listenPort);
+            jcfg["server"] = outbound->server + ":" + Int2String(outbound->server_port);
+            jcfg["uuid"] = outbound->uuid;
+            jcfg["password"] = outbound->password;
+            if (!outbound->congestion_control.isEmpty())
+                jcfg["congestion_control"] = outbound->congestion_control;
 
-            auto server_address = WrapIPV6Host(outbound->server);
-            QString server_url = "juicity://" + outbound->uuid + ":" + outbound->password + "@" + server_address + ":" + Int2String(outbound->server_port);
-            
-            // Add query parameters（含内置字段 + 额外透传字段）
-            QUrlQuery query;
-            if (!outbound->congestion_control.isEmpty()) query.addQueryItem("congestion_control", outbound->congestion_control);
-            if (!outbound->udp_relay_mode.isEmpty()) query.addQueryItem("udp_relay_mode", outbound->udp_relay_mode);
-            if (outbound->udp_over_stream) query.addQueryItem("udp_over_stream", "true");
-            if (outbound->zero_rtt_handshake) query.addQueryItem("zero_rtt_handshake", "true");
-            if (!outbound->heartbeat.isEmpty()) query.addQueryItem("heartbeat", outbound->heartbeat);
+            // Parse extra_params for advanced options: sni / allow_insecure / log_level / pinned_certchain_sha256 etc.
             if (!outbound->extra_params.isEmpty())
             {
                 QUrlQuery extra(outbound->extra_params);
                 const auto items = extra.queryItems();
                 for (const auto &item : items)
                 {
-                    query.addQueryItem(item.first, item.second);
+                    const auto &key = item.first;
+                    const auto &val = item.second;
+                    if (key == "sni")
+                    {
+                        jcfg["sni"] = val;
+                    }
+                    else if (key == "allow_insecure")
+                    {
+                        jcfg["allow_insecure"] = (val == "1" || val.compare("true", Qt::CaseInsensitive) == 0);
+                    }
+                    else if (key == "log_level")
+                    {
+                        jcfg["log_level"] = val;
+                    }
+                    else if (key == "pinned_certchain_sha256")
+                    {
+                        jcfg["pinned_certchain_sha256"] = val;
+                    }
+                    else
+                    {
+                        // 其他未知字段也一并写入配置，避免丢失信息
+                        jcfg[key] = val;
+                    }
                 }
             }
-            
-            QUrl juicity_url(server_url);
-            juicity_url.setQuery(query);
-            args << ("--server=" + juicity_url.toString(QUrl::FullyEncoded));
+
+            // 如果链接没有指定 log_level，根据全局开关给一个默认值
+            if (!jcfg.contains("log_level"))
+            {
+                jcfg["log_level"] = Configs::dataStore->juicity_no_log ? "error" : "info";
+            }
+
+            // 构造 extra.conf 内容
+            auto confStr = QJsonObject2QString(jcfg, true);
+
+            // juicity-client.exe run -c %s （%s 会在 core/server 里被替换成 extra.conf 的完整路径）
+            QStringList args;
+            args << "run" << "-c" << "%s";
 
             ctx->buildConfigResult->extraCoreData->path = QFileInfo(Configs::dataStore->juicity_core_path).canonicalFilePath();
             ctx->buildConfigResult->extraCoreData->args = QStringList2Command(args).trimmed();
-            ctx->buildConfigResult->extraCoreData->config = ""; // not used for juicity by default
+            ctx->buildConfigResult->extraCoreData->config = confStr;
             ctx->buildConfigResult->extraCoreData->configDir = GetBasePath();
             ctx->buildConfigResult->extraCoreData->noLog = Configs::dataStore->juicity_no_log;
-            
-            MW_show_log(QString("Juicity: will start juicity.exe on %1:%2, sing-box will connect to socks://%1:%2")
+
+            MW_show_log(QString("Juicity: will start juicity client on %1:%2, sing-box will connect to socks://%1:%2")
                         .arg(listenAddr, Int2String(listenPort)));
         }
     }
