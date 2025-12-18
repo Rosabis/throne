@@ -308,6 +308,10 @@ namespace Configs {
         _add(new configItem("mieru_socks_listen_addr", &mieru_socks_listen_addr, itemType::string));
         _add(new configItem("mieru_socks_port_base", &mieru_socks_port_base, itemType::integer));
         _add(new configItem("mieru_no_log", &mieru_no_log, itemType::boolean));
+        _add(new configItem("shadowquic_core_path", &shadowquic_core_path, itemType::string));
+        _add(new configItem("shadowquic_socks_listen_addr", &shadowquic_socks_listen_addr, itemType::string));
+        _add(new configItem("shadowquic_socks_port_base", &shadowquic_socks_port_base, itemType::integer));
+        _add(new configItem("shadowquic_no_log", &shadowquic_no_log, itemType::boolean));
         _add(new configItem("enable_ntp", &enable_ntp, itemType::boolean));
         _add(new configItem("ntp_server_address", &ntp_server_address, itemType::string));
         _add(new configItem("ntp_server_port", &ntp_server_port, itemType::integer));

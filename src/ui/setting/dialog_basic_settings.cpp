@@ -312,6 +312,10 @@ void DialogBasicSettings::on_core_settings_clicked() {
     MyLineEdit *mieru_socks_listen_addr;
     MyLineEdit *mieru_socks_port_base;
     QCheckBox *mieru_no_log;
+    MyLineEdit *shadowquic_core_path;
+    MyLineEdit *shadowquic_socks_listen_addr;
+    MyLineEdit *shadowquic_socks_port_base;
+    QCheckBox *shadowquic_no_log;
     //
     auto core_box_clash_listen_addr_l = new QLabel("Clash Api Listen Address");
     core_box_clash_listen_addr = new MyLineEdit;
@@ -431,6 +435,39 @@ void DialogBasicSettings::on_core_settings_clicked() {
     layout->addWidget(mieru_no_log_l, ++line, 0);
     layout->addWidget(mieru_no_log, line, 1);
 
+    // ShadowQUIC external core (shadowquic.exe)
+    auto shadowquic_core_path_l = new QLabel("ShadowQUIC Core Path (shadowquic.exe)");
+    shadowquic_core_path = new MyLineEdit;
+    shadowquic_core_path->setText(Configs::dataStore->shadowquic_core_path);
+    auto shadowquic_core_path_pick = new QPushButton("Select");
+    layout->addWidget(shadowquic_core_path_l, ++line, 0);
+    auto shadowquic_core_path_row = new QHBoxLayout;
+    shadowquic_core_path_row->addWidget(shadowquic_core_path);
+    shadowquic_core_path_row->addWidget(shadowquic_core_path_pick);
+    layout->addLayout(shadowquic_core_path_row, line, 1);
+    connect(shadowquic_core_path_pick, &QPushButton::clicked, w, [=] {
+        auto f = QFileDialog::getOpenFileName(w, "Select shadowquic core", QDir::currentPath());
+        if (!f.isEmpty()) shadowquic_core_path->setText(f);
+    });
+
+    auto shadowquic_socks_listen_addr_l = new QLabel("ShadowQUIC Socks Listen Address");
+    shadowquic_socks_listen_addr = new MyLineEdit;
+    shadowquic_socks_listen_addr->setText(Configs::dataStore->shadowquic_socks_listen_addr);
+    layout->addWidget(shadowquic_socks_listen_addr_l, ++line, 0);
+    layout->addWidget(shadowquic_socks_listen_addr, line, 1);
+
+    auto shadowquic_socks_port_base_l = new QLabel("ShadowQUIC Socks Port Base");
+    shadowquic_socks_port_base = new MyLineEdit;
+    shadowquic_socks_port_base->setText(Int2String(Configs::dataStore->shadowquic_socks_port_base));
+    layout->addWidget(shadowquic_socks_port_base_l, ++line, 0);
+    layout->addWidget(shadowquic_socks_port_base, line, 1);
+
+    auto shadowquic_no_log_l = new QLabel("ShadowQUIC No Output");
+    shadowquic_no_log = new QCheckBox;
+    shadowquic_no_log->setChecked(Configs::dataStore->shadowquic_no_log);
+    layout->addWidget(shadowquic_no_log_l, ++line, 0);
+    layout->addWidget(shadowquic_no_log, line, 1);
+
     auto box = new QDialogButtonBox;
     box->setOrientation(Qt::Horizontal);
     box->setStandardButtons(QDialogButtonBox::Cancel | QDialogButtonBox::Ok);
@@ -450,6 +487,10 @@ void DialogBasicSettings::on_core_settings_clicked() {
         Configs::dataStore->mieru_socks_listen_addr = mieru_socks_listen_addr->text();
         Configs::dataStore->mieru_socks_port_base = mieru_socks_port_base->text().toInt();
         Configs::dataStore->mieru_no_log = mieru_no_log->isChecked();
+        Configs::dataStore->shadowquic_core_path = shadowquic_core_path->text();
+        Configs::dataStore->shadowquic_socks_listen_addr = shadowquic_socks_listen_addr->text();
+        Configs::dataStore->shadowquic_socks_port_base = shadowquic_socks_port_base->text().toInt();
+        Configs::dataStore->shadowquic_no_log = shadowquic_no_log->isChecked();
         MW_dialog_message(Dialog_DialogBasicSettings, "UpdateDataStore");
         w->accept();
     });

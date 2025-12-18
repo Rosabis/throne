@@ -206,6 +206,11 @@ namespace Configs {
         QString mieru_socks_listen_addr = "127.0.0.1";
         int mieru_socks_port_base = 32000;
         bool mieru_no_log = false;
+        // ShadowQUIC: run as external shadowquic.exe, sing-box connects to local socks.
+        QString shadowquic_core_path = "";
+        QString shadowquic_socks_listen_addr = "127.0.0.1";
+        int shadowquic_socks_port_base = 33000;
+        bool shadowquic_no_log = false;
 
         // Methods
 

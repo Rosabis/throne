@@ -94,6 +94,10 @@ namespace Configs {
             return dynamic_cast<Configs::mieru *>(outbound.get());
         };
 
+        [[nodiscard]] Configs::shadowquic *ShadowQUIC() const {
+            return dynamic_cast<Configs::shadowquic *>(outbound.get());
+        };
+
         [[nodiscard]] Configs::ssh *SSH() const {
             return dynamic_cast<Configs::ssh *>(outbound.get());
         };

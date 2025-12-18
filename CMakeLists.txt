@@ -292,6 +292,9 @@ set(PROJECT_SOURCES
         include/ui/profile/edit_mieru.h
         src/ui/profile/edit_mieru.cpp
         include/ui/profile/edit_mieru.ui
+        include/ui/profile/edit_shadowquic.h
+        src/ui/profile/edit_shadowquic.cpp
+        include/ui/profile/edit_shadowquic.ui
         include/ui/profile/edit_http.h
         src/ui/profile/edit_http.cpp
         include/ui/profile/edit_http.ui

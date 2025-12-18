@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>EditShadowquic</class>
+ <widget class="QWidget" name="EditShadowquic">
+  <layout class="QFormLayout" name="formLayout">
+   <item row="0" column="0">
+    <widget class="QLabel" name="label_server">
+     <property name="text">
+      <string>Server</string>
+     </property>
+    </widget>
+   </item>
+   <item row="0" column="1">
+    <widget class="QLineEdit" name="server"/>
+   </item>
+   <item row="1" column="0">
+    <widget class="QLabel" name="label_port">
+     <property name="text">
+      <string>Port</string>
+     </property>
+    </widget>
+   </item>
+   <item row="1" column="1">
+    <widget class="QSpinBox" name="port">
+     <property name="minimum">
+      <number>1</number>
+     </property>
+     <property name="maximum">
+      <number>65535</number>
+     </property>
+     <property name="value">
+      <number>1443</number>
+     </property>
+    </widget>
+   </item>
+   <item row="2" column="0">
+    <widget class="QLabel" name="label_username">
+     <property name="text">
+      <string>Username</string>
+     </property>
+    </widget>
+   </item>
+   <item row="2" column="1">
+    <widget class="QLineEdit" name="username"/>
+   </item>
+   <item row="3" column="0">
+    <widget class="QLabel" name="label_password">
+     <property name="text">
+      <string>Password</string>
+     </property>
+    </widget>
+   </item>
+   <item row="3" column="1">
+    <widget class="QLineEdit" name="password">
+     <property name="echoMode">
+      <enum>QLineEdit::Password</enum>
+     </property>
+    </widget>
+   </item>
+   <item row="4" column="0">
+    <widget class="QLabel" name="label_server_name">
+     <property name="text">
+      <string>Server Name (SNI)</string>
+     </property>
+    </widget>
+   </item>
+   <item row="4" column="1">
+    <widget class="QLineEdit" name="server_name"/>
+   </item>
+   <item row="5" column="0">
+    <widget class="QLabel" name="label_alpn">
+     <property name="text">
+      <string>ALPN (comma separated)</string>
+     </property>
+    </widget>
+   </item>
+   <item row="5" column="1">
+    <widget class="QLineEdit" name="alpn">
+     <property name="text">
+      <string>h3</string>
+     </property>
+    </widget>
+   </item>
+   <item row="6" column="0">
+    <widget class="QLabel" name="label_initial_mtu">
+     <property name="text">
+      <string>Initial MTU</string>
+     </property>
+    </widget>
+   </item>
+   <item row="6" column="1">
+    <widget class="QSpinBox" name="initial_mtu">
+     <property name="minimum">
+      <number>576</number>
+     </property>
+     <property name="maximum">
+      <number>1500</number>
+     </property>
+     <property name="value">
+      <number>1300</number>
+     </property>
+    </widget>
+   </item>
+   <item row="7" column="0">
+    <widget class="QLabel" name="label_congestion">
+     <property name="text">
+      <string>Congestion Control</string>
+     </property>
+    </widget>
+   </item>
+   <item row="7" column="1">
+    <widget class="QLineEdit" name="congestion_control">
+     <property name="text">
+      <string>bbr</string>
+     </property>
+    </widget>
+   </item>
+   <item row="8" column="0">
+    <widget class="QLabel" name="label_zero_rtt">
+     <property name="text">
+      <string>Zero-RTT</string>
+     </property>
+    </widget>
+   </item>
+   <item row="8" column="1">
+    <widget class="QCheckBox" name="zero_rtt"/>
+   </item>
+   <item row="9" column="0">
+    <widget class="QLabel" name="label_over_stream">
+     <property name="text">
+      <string>Over Stream</string>
+     </property>
+    </widget>
+   </item>
+   <item row="9" column="1">
+    <widget class="QCheckBox" name="over_stream"/>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
+

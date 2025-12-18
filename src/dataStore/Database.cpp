@@ -251,6 +251,9 @@ namespace Configs {
         } else if (type == "mieru") {
             bean = new Configs::AbstractBean(-1);
             outbound = new Configs::mieru();
+        } else if (type == "shadowquic") {
+            bean = new Configs::AbstractBean(-1);
+            outbound = new Configs::shadowquic();
         } else if (type == "shadowsocks") {
             bean = new Configs::ShadowSocksBean();
             outbound = new Configs::shadowsocks();

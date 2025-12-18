@@ -508,15 +508,15 @@ namespace Configs {
                 ctx->error = "failed to cast to shadowquic, type is: " + ctx->ent->type;
                 return;
             }
-            if (Configs::dataStore->naive_core_path.trimmed().isEmpty())
+            if (Configs::dataStore->shadowquic_core_path.trimmed().isEmpty())
             {
                 ctx->error = "ShadowQUIC core path is empty. Please set it in Settings -> Core Options.";
                 return;
             }
 
-            auto listenAddr = Configs::dataStore->naive_socks_listen_addr.trimmed();
+            auto listenAddr = Configs::dataStore->shadowquic_socks_listen_addr.trimmed();
             if (listenAddr.isEmpty()) listenAddr = "127.0.0.1";
-            int base = Configs::dataStore->naive_socks_port_base;
+            int base = Configs::dataStore->shadowquic_socks_port_base;
             if (base <= 0) base = 33000;
             uint h = qHash(outbound->server + ":" + Int2String(outbound->server_port) + ":" + outbound->username);
             int listenPort = base + (int)(h % 10000);
@@ -552,11 +552,11 @@ namespace Configs {
 
             QStringList args;
             args << "-c" << "%s";
-            ctx->buildConfigResult->extraCoreData->path = QFileInfo(Configs::dataStore->naive_core_path).canonicalFilePath();
+            ctx->buildConfigResult->extraCoreData->path = QFileInfo(Configs::dataStore->shadowquic_core_path).canonicalFilePath();
             ctx->buildConfigResult->extraCoreData->args = QStringList2Command(args).trimmed();
             ctx->buildConfigResult->extraCoreData->config = confStr;
             ctx->buildConfigResult->extraCoreData->configDir = GetBasePath();
-            ctx->buildConfigResult->extraCoreData->noLog = false;
+            ctx->buildConfigResult->extraCoreData->noLog = Configs::dataStore->shadowquic_no_log;
 
             MW_show_log(QString("ShadowQUIC: will start client, SOCKS5 on %1:%2, sing-box will connect to socks://%1:%2")
                         .arg(listenAddr, Int2String(listenPort)));
@@ -1338,6 +1338,41 @@ namespace Configs {
                 // Store the config and extraCoreData for this Juicity node
                 res->fullConfigs[item->id] = QJsonObject2QString(juicityCtx->buildConfigResult->coreConfig, true);
                 res->nodeExtraCoreData[item->id] = juicityCtx->buildConfigResult->extraCoreData;
+                continue;
+            }
+            // Handle ShadowQUIC nodes separately - they need extra process
+            if (item->type == "shadowquic")
+            {
+                auto sqCtx = std::make_shared<BuildSingBoxConfigContext>();
+                sqCtx->forTest = true;
+                sqCtx->ent = item;
+                CalculatePrerequisities(sqCtx);
+                if (!sqCtx->error.isEmpty())
+                {
+                    MW_show_log("Failed to build ShadowQUIC test config: " + sqCtx->error);
+                    item->latency = -1;
+                    continue;
+                }
+                buildDNSSection(sqCtx);
+                buildLogSections(sqCtx);
+                buildCertificateSection(sqCtx);
+                buildNTPSection(sqCtx);
+                buildOutboundsSection(sqCtx);
+                if (!sqCtx->error.isEmpty())
+                {
+                    MW_show_log("Failed to build ShadowQUIC test config: " + sqCtx->error);
+                    item->latency = -1;
+                    continue;
+                }
+                buildRouteSection(sqCtx);
+                if (!sqCtx->error.isEmpty())
+                {
+                    MW_show_log("Failed to build ShadowQUIC test config: " + sqCtx->error);
+                    item->latency = -1;
+                    continue;
+                }
+                res->fullConfigs[item->id] = QJsonObject2QString(sqCtx->buildConfigResult->coreConfig, true);
+                res->nodeExtraCoreData[item->id] = sqCtx->buildConfigResult->extraCoreData;
                 continue;
             }
             // Handle Mieru nodes separately - they need extra process
