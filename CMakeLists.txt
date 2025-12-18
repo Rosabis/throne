@@ -243,8 +243,9 @@ set(PROJECT_SOURCES
         src/configs/common/Outbound.cpp
         include/configs/outbounds/socks.h
         include/configs/outbounds/http.h
-         include/configs/outbounds/naive.h
-         include/configs/outbounds/juicity.h
+        include/configs/outbounds/naive.h
+        include/configs/outbounds/juicity.h
+        include/configs/outbounds/mieru.h
         include/configs/outbounds/shadowsocks.h
         include/configs/outbounds/vmess.h
         include/configs/outbounds/trojan.h
@@ -257,8 +258,9 @@ set(PROJECT_SOURCES
         # outbounds impl
         src/configs/outbounds/anyTLS.cpp
         src/configs/outbounds/http.cpp
-         src/configs/outbounds/naive.cpp
-         src/configs/outbounds/juicity.cpp
+        src/configs/outbounds/naive.cpp
+        src/configs/outbounds/juicity.cpp
+        src/configs/outbounds/mieru.cpp
         src/configs/outbounds/hysteria.cpp
         src/configs/outbounds/shadowsocks.cpp
         src/configs/outbounds/socks.cpp
@@ -285,6 +287,9 @@ set(PROJECT_SOURCES
         include/ui/profile/edit_juicity.h
         src/ui/profile/edit_juicity.cpp
         include/ui/profile/edit_juicity.ui
+        include/ui/profile/edit_mieru.h
+        src/ui/profile/edit_mieru.cpp
+        include/ui/profile/edit_mieru.ui
         include/ui/profile/edit_http.h
         src/ui/profile/edit_http.cpp
         include/ui/profile/edit_http.ui

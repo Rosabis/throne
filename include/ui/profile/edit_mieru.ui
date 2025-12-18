@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>EditMieru</class>
+ <widget class="QWidget" name="EditMieru">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>525</width>
+    <height>304</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string notr="true">EditMieru</string>
+  </property>
+  <layout class="QGridLayout" name="gridLayout">
+   <item row="0" column="0">
+    <widget class="QLabel" name="label">
+     <property name="text">
+      <string>Username</string>
+     </property>
+    </widget>
+   </item>
+   <item row="0" column="1">
+    <widget class="QLineEdit" name="username"/>
+   </item>
+   <item row="1" column="0">
+    <widget class="QLabel" name="label_2">
+     <property name="text">
+      <string>Password</string>
+     </property>
+    </widget>
+   </item>
+   <item row="1" column="1">
+    <widget class="QLineEdit" name="password"/>
+   </item>
+   <item row="2" column="0">
+    <widget class="QLabel" name="label_3">
+     <property name="text">
+      <string>Profile Name</string>
+     </property>
+    </widget>
+   </item>
+   <item row="2" column="1">
+    <widget class="QLineEdit" name="profile_name"/>
+   </item>
+   <item row="3" column="0">
+    <widget class="QLabel" name="label_4">
+     <property name="text">
+      <string>MTU</string>
+     </property>
+    </widget>
+   </item>
+   <item row="3" column="1">
+    <widget class="QLineEdit" name="mtu"/>
+   </item>
+   <item row="4" column="0">
+    <widget class="QLabel" name="label_5">
+     <property name="text">
+      <string>Multiplexing</string>
+     </property>
+    </widget>
+   </item>
+   <item row="4" column="1">
+    <widget class="QComboBox" name="multiplexing">
+     <item>
+      <property name="text">
+       <string notr="true">MULTIPLEXING_OFF</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string notr="true">MULTIPLEXING_LOW</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string notr="true">MULTIPLEXING_MIDDLE</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string notr="true">MULTIPLEXING_HIGH</string>
+      </property>
+     </item>
+    </widget>
+   </item>
+   <item row="5" column="0">
+    <widget class="QLabel" name="label_6">
+     <property name="text">
+      <string>Handshake Mode</string>
+     </property>
+    </widget>
+   </item>
+   <item row="5" column="1">
+    <widget class="QComboBox" name="handshake_mode">
+     <item>
+      <property name="text">
+       <string notr="true">HANDSHAKE_STANDARD</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string notr="true">HANDSHAKE_NO_WAIT</string>
+      </property>
+     </item>
+    </widget>
+   </item>
+   <item row="6" column="0">
+    <widget class="QLabel" name="label_7">
+     <property name="text">
+      <string>Port Bindings</string>
+     </property>
+    </widget>
+   </item>
+   <item row="6" column="1">
+    <widget class="QPushButton" name="port_bindings">
+     <property name="text">
+      <string notr="true">Edit</string>
+     </property>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
+

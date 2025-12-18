@@ -210,6 +210,13 @@ namespace Subscription {
             if (!ok) return;
         }
 
+        // Mieru
+        if (str.startsWith("mierus://")) {
+            ent = Configs::ProfileManager::NewProxyEntity("mieru");
+            auto ok = ent->Mieru()->ParseFromLink(str);
+            if (!ok) return;
+        }
+
         // Wireguard
         if (str.startsWith("wg://")) {
             ent = Configs::ProfileManager::NewProxyEntity("wireguard");

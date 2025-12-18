@@ -13,6 +13,7 @@
 #include "include/ui/profile/edit_extra_core.h"
 #include "include/ui/profile/edit_naive.h"
 #include "include/ui/profile/edit_juicity.h"
+#include "include/ui/profile/edit_mieru.h"
 
 #include "include/configs/proxy/includes.h"
 #include "include/configs/proxy/Preset.hpp"
@@ -152,6 +153,7 @@ DialogEditProfile::DialogEditProfile(const QString &_type, int profileOrGroupId,
         LOAD_TYPE("shadowsocks")
         LOAD_TYPE("naive")
         LOAD_TYPE("juicity")
+        LOAD_TYPE("mieru")
         LOAD_TYPE("trojan")
         LOAD_TYPE("vmess")
         LOAD_TYPE("vless")
@@ -204,6 +206,10 @@ void DialogEditProfile::typeSelected(const QString &newType) {
         innerEditor = _innerWidget;
     } else if (type == "juicity") {
         auto _innerWidget = new EditJuicity(this);
+        innerWidget = _innerWidget;
+        innerEditor = _innerWidget;
+    } else if (type == "mieru") {
+        auto _innerWidget = new EditMieru(this);
         innerWidget = _innerWidget;
         innerEditor = _innerWidget;
     } else if (type == "shadowsocks") {

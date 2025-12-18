@@ -570,7 +570,7 @@ void MainWindow::profile_start(int _id) {
         libcore::LoadConfigReq req;
         req.core_config = QJsonObject2QString(result->coreConfig, true).toStdString();
         req.disable_stats = Configs::dataStore->disable_traffic_stats;
-        if (ent->type == "extracore" || ent->type == "naive" || ent->type == "juicity")
+        if (ent->type == "extracore" || ent->type == "naive" || ent->type == "juicity" || ent->type == "mieru")
         {
             req.need_extra_process = true;
             req.extra_process_path = result->extraCoreData->path.toStdString();

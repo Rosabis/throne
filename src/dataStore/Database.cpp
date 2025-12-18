@@ -248,6 +248,9 @@ namespace Configs {
         } else if (type == "juicity") {
             bean = new Configs::AbstractBean(-1);
             outbound = new Configs::juicity();
+        } else if (type == "mieru") {
+            bean = new Configs::AbstractBean(-1);
+            outbound = new Configs::mieru();
         } else if (type == "shadowsocks") {
             bean = new Configs::ShadowSocksBean();
             outbound = new Configs::shadowsocks();

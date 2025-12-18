@@ -308,6 +308,11 @@ void DialogBasicSettings::on_core_settings_clicked() {
     MyLineEdit *juicity_socks_listen_addr;
     MyLineEdit *juicity_socks_port_base;
     QCheckBox *juicity_no_log;
+    MyLineEdit *mieru_core_path;
+    MyLineEdit *mieru_socks_listen_addr;
+    MyLineEdit *mieru_socks_port_base;
+    QCheckBox *mieru_no_log;
+    QCheckBox *juicity_no_log;
     //
     auto core_box_clash_listen_addr_l = new QLabel("Clash Api Listen Address");
     core_box_clash_listen_addr = new MyLineEdit;
@@ -394,6 +399,39 @@ void DialogBasicSettings::on_core_settings_clicked() {
     layout->addWidget(juicity_no_log_l, ++line, 0);
     layout->addWidget(juicity_no_log, line, 1);
 
+    // Mieru external core (mieru.exe)
+    auto mieru_core_path_l = new QLabel("Mieru Core Path (mieru.exe)");
+    mieru_core_path = new MyLineEdit;
+    mieru_core_path->setText(Configs::dataStore->mieru_core_path);
+    auto mieru_core_path_pick = new QPushButton("Select");
+    layout->addWidget(mieru_core_path_l, ++line, 0);
+    auto mieru_core_path_row = new QHBoxLayout;
+    mieru_core_path_row->addWidget(mieru_core_path);
+    mieru_core_path_row->addWidget(mieru_core_path_pick);
+    layout->addLayout(mieru_core_path_row, line, 1);
+    connect(mieru_core_path_pick, &QPushButton::clicked, w, [=] {
+        auto f = QFileDialog::getOpenFileName(w, "Select mieru core", QDir::currentPath());
+        if (!f.isEmpty()) mieru_core_path->setText(f);
+    });
+
+    auto mieru_socks_listen_addr_l = new QLabel("Mieru Socks Listen Address");
+    mieru_socks_listen_addr = new MyLineEdit;
+    mieru_socks_listen_addr->setText(Configs::dataStore->mieru_socks_listen_addr);
+    layout->addWidget(mieru_socks_listen_addr_l, ++line, 0);
+    layout->addWidget(mieru_socks_listen_addr, line, 1);
+
+    auto mieru_socks_port_base_l = new QLabel("Mieru Socks Port Base");
+    mieru_socks_port_base = new MyLineEdit;
+    mieru_socks_port_base->setText(Int2String(Configs::dataStore->mieru_socks_port_base));
+    layout->addWidget(mieru_socks_port_base_l, ++line, 0);
+    layout->addWidget(mieru_socks_port_base, line, 1);
+
+    auto mieru_no_log_l = new QLabel("Mieru No Output");
+    mieru_no_log = new QCheckBox;
+    mieru_no_log->setChecked(Configs::dataStore->mieru_no_log);
+    layout->addWidget(mieru_no_log_l, ++line, 0);
+    layout->addWidget(mieru_no_log, line, 1);
+
     auto box = new QDialogButtonBox;
     box->setOrientation(Qt::Horizontal);
     box->setStandardButtons(QDialogButtonBox::Cancel | QDialogButtonBox::Ok);
@@ -409,6 +447,10 @@ void DialogBasicSettings::on_core_settings_clicked() {
         Configs::dataStore->juicity_socks_listen_addr = juicity_socks_listen_addr->text();
         Configs::dataStore->juicity_socks_port_base = juicity_socks_port_base->text().toInt();
         Configs::dataStore->juicity_no_log = juicity_no_log->isChecked();
+        Configs::dataStore->mieru_core_path = mieru_core_path->text();
+        Configs::dataStore->mieru_socks_listen_addr = mieru_socks_listen_addr->text();
+        Configs::dataStore->mieru_socks_port_base = mieru_socks_port_base->text().toInt();
+        Configs::dataStore->mieru_no_log = mieru_no_log->isChecked();
         MW_dialog_message(Dialog_DialogBasicSettings, "UpdateDataStore");
         w->accept();
     });

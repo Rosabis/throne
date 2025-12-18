@@ -368,6 +368,123 @@ namespace Configs {
             MW_show_log(QString("Juicity: will start juicity client on %1:%2, sing-box will connect to socks://%1:%2")
                         .arg(listenAddr, Int2String(listenPort)));
         }
+
+        // Mieru (external core): start mieru.exe, sing-box connects to local socks.
+        if (ctx->ent->type == "mieru")
+        {
+            auto outbound = dynamic_cast<Configs::mieru*>(ctx->ent->outbound.get());
+            if (outbound == nullptr)
+            {
+                MW_show_log("INVALID ENT TYPE, NEEDED MIERU GOT NULLPTR");
+                ctx->error = "failed to cast to mieru, type is: " + ctx->ent->type;
+                return;
+            }
+            if (Configs::dataStore->mieru_core_path.trimmed().isEmpty())
+            {
+                ctx->error = "Mieru core path is empty. Please set it in Settings -> Core Options.";
+                return;
+            }
+
+            auto listenAddr = Configs::dataStore->mieru_socks_listen_addr.trimmed();
+            if (listenAddr.isEmpty()) listenAddr = "127.0.0.1";
+            int base = Configs::dataStore->mieru_socks_port_base;
+            if (base <= 0) base = 32000;
+            // Deterministic port per (server, username, password) to avoid collisions and
+            // keep it consistent with mieru::Build() which uses the same hash formula.
+            uint h = qHash(outbound->server + ":" + outbound->username + ":" + outbound->password);
+            int listenPort = base + (int)(h % 10000);
+            if (listenPort <= 0 || listenPort > 65535) listenPort = 32000;
+
+            // Build mieru JSON config (mieru apply config <FILE>)
+            QJsonObject mcfg;
+            
+            // Build profile
+            QJsonObject profile;
+            profile["profileName"] = outbound->profile_name;
+            
+            // User
+            QJsonObject user;
+            user["name"] = outbound->username;
+            user["password"] = outbound->password;
+            profile["user"] = user;
+            
+            // Servers
+            QJsonArray servers;
+            QJsonObject serverObj;
+            serverObj["ipAddress"] = outbound->server;
+            serverObj["domainName"] = ""; // Can be set if domain is registered
+            
+            // Port bindings
+            QJsonArray portBindings;
+            for (int i = 0; i < outbound->port_bindings.size() && i < outbound->protocols.size(); i++) {
+                QJsonObject pb;
+                QString portStr = outbound->port_bindings[i];
+                if (portStr.contains("-")) {
+                    pb["portRange"] = portStr;
+                } else {
+                    pb["port"] = portStr.toInt();
+                }
+                pb["protocol"] = outbound->protocols[i];
+                portBindings.append(pb);
+            }
+            serverObj["portBindings"] = portBindings;
+            servers.append(serverObj);
+            profile["servers"] = servers;
+            
+            // MTU
+            if (outbound->mtu >= 1280 && outbound->mtu <= 1400) {
+                profile["mtu"] = outbound->mtu;
+            }
+            
+            // Multiplexing
+            QJsonObject multiplexingObj;
+            multiplexingObj["level"] = outbound->multiplexing;
+            profile["multiplexing"] = multiplexingObj;
+            
+            // Handshake mode
+            profile["handshakeMode"] = outbound->handshake_mode;
+            
+            // Profiles array
+            QJsonArray profiles;
+            profiles.append(profile);
+            mcfg["profiles"] = profiles;
+            mcfg["activeProfile"] = outbound->profile_name;
+            
+            // RPC port (random between 1025-65535, avoid conflicts)
+            int rpcPort = 8964 + (int)(h % 1000);
+            if (rpcPort < 1025 || rpcPort > 65535) rpcPort = 8964;
+            mcfg["rpcPort"] = rpcPort;
+            
+            // SOCKS5 port (use our calculated listenPort)
+            mcfg["socks5Port"] = listenPort;
+            mcfg["socks5ListenLAN"] = false;
+            
+            // Logging level
+            mcfg["loggingLevel"] = Configs::dataStore->mieru_no_log ? "ERROR" : "INFO";
+
+            // Construct config file content
+            auto confStr = QJsonObject2QString(mcfg, true);
+
+            // mieru needs: apply config then start
+            // On Windows: cmd /c "mieru apply config %s && mieru start"
+            // On Linux/Mac: sh -c "mieru apply config %s && mieru start"
+            QStringList args;
+#ifdef Q_OS_WIN
+            args << "/c" << ("\"" + QFileInfo(Configs::dataStore->mieru_core_path).canonicalFilePath() + "\" apply config %s && \"" + QFileInfo(Configs::dataStore->mieru_core_path).canonicalFilePath() + "\" start");
+            ctx->buildConfigResult->extraCoreData->path = "cmd.exe";
+#else
+            args << "-c" << ("\"" + QFileInfo(Configs::dataStore->mieru_core_path).canonicalFilePath() + "\" apply config %s && \"" + QFileInfo(Configs::dataStore->mieru_core_path).canonicalFilePath() + "\" start");
+            ctx->buildConfigResult->extraCoreData->path = "sh";
+#endif
+
+            ctx->buildConfigResult->extraCoreData->args = QStringList2Command(args).trimmed();
+            ctx->buildConfigResult->extraCoreData->config = confStr;
+            ctx->buildConfigResult->extraCoreData->configDir = GetBasePath();
+            ctx->buildConfigResult->extraCoreData->noLog = Configs::dataStore->mieru_no_log;
+
+            MW_show_log(QString("Mieru: will apply config and start mieru.exe, SOCKS5 on %1:%2, sing-box will connect to socks://%1:%2")
+                        .arg(listenAddr, Int2String(listenPort)));
+        }
     }
 
     void buildLogSections(std::shared_ptr<BuildSingBoxConfigContext> &ctx) {
@@ -1145,6 +1262,42 @@ namespace Configs {
                 // Store the config and extraCoreData for this Juicity node
                 res->fullConfigs[item->id] = QJsonObject2QString(juicityCtx->buildConfigResult->coreConfig, true);
                 res->nodeExtraCoreData[item->id] = juicityCtx->buildConfigResult->extraCoreData;
+                continue;
+            }
+            // Handle Mieru nodes separately - they need extra process
+            if (item->type == "mieru")
+            {
+                auto mieruCtx = std::make_shared<BuildSingBoxConfigContext>();
+                mieruCtx->forTest = true;
+                mieruCtx->ent = item;
+                CalculatePrerequisities(mieruCtx);
+                if (!mieruCtx->error.isEmpty())
+                {
+                    MW_show_log("Failed to build Mieru test config: " + mieruCtx->error);
+                    item->latency = -1;
+                    continue;
+                }
+                buildDNSSection(mieruCtx);
+                buildLogSections(mieruCtx);
+                buildCertificateSection(mieruCtx);
+                buildNTPSection(mieruCtx);
+                buildOutboundsSection(mieruCtx);
+                if (!mieruCtx->error.isEmpty())
+                {
+                    MW_show_log("Failed to build Mieru test config: " + mieruCtx->error);
+                    item->latency = -1;
+                    continue;
+                }
+                buildRouteSection(mieruCtx);
+                if (!mieruCtx->error.isEmpty())
+                {
+                    MW_show_log("Failed to build Mieru test config: " + mieruCtx->error);
+                    item->latency = -1;
+                    continue;
+                }
+                // Store the config and extraCoreData for this Mieru node
+                res->fullConfigs[item->id] = QJsonObject2QString(mieruCtx->buildConfigResult->coreConfig, true);
+                res->nodeExtraCoreData[item->id] = mieruCtx->buildConfigResult->extraCoreData;
                 continue;
             }
             if (!IsValid(item)) {

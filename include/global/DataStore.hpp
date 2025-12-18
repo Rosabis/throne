@@ -201,6 +201,11 @@ namespace Configs {
         QString juicity_socks_listen_addr = "127.0.0.1";
         int juicity_socks_port_base = 31000;
         bool juicity_no_log = false;
+        // Mieru: run as external mieru.exe, sing-box connects to local socks.
+        QString mieru_core_path = "";
+        QString mieru_socks_listen_addr = "127.0.0.1";
+        int mieru_socks_port_base = 32000;
+        bool mieru_no_log = false;
 
         // Methods
 
