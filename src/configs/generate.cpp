@@ -466,18 +466,21 @@ namespace Configs {
             auto confStr = QJsonObject2QString(mcfg, true);
 
             // mieru needs: apply config then start
-            // On Windows: cmd /c "mieru apply config %s && mieru start"
-            // On Linux/Mac: sh -c "mieru apply config %s && mieru start"
-            QStringList args;
+            // On Windows: cmd.exe /c "C:\Path With Spaces\mieru.exe" apply config %s && "C:\Path With Spaces\mieru.exe" start
+            // On Linux/Mac: sh -c '"mieru" apply config %s && "mieru" start'
+            QString exePath = QFileInfo(Configs::dataStore->mieru_core_path).canonicalFilePath();
 #ifdef Q_OS_WIN
-            args << "/c" << ("\"" + QFileInfo(Configs::dataStore->mieru_core_path).canonicalFilePath() + "\" apply config %s && \"" + QFileInfo(Configs::dataStore->mieru_core_path).canonicalFilePath() + "\" start");
             ctx->buildConfigResult->extraCoreData->path = "cmd.exe";
+            // Build a single command string; QProcess::splitCommand will keep it as one arg for cmd.exe
+            ctx->buildConfigResult->extraCoreData->args =
+                    "/c \"" + exePath + "\" apply config %s && \"" + exePath + "\" start";
 #else
-            args << "-c" << ("\"" + QFileInfo(Configs::dataStore->mieru_core_path).canonicalFilePath() + "\" apply config %s && \"" + QFileInfo(Configs::dataStore->mieru_core_path).canonicalFilePath() + "\" start");
             ctx->buildConfigResult->extraCoreData->path = "sh";
-#endif
-
+            // For POSIX shells we can still use -c with proper quoting
+            QStringList args;
+            args << "-c" << ("\"" + exePath + "\" apply config %s && \"" + exePath + "\" start");
             ctx->buildConfigResult->extraCoreData->args = QStringList2Command(args).trimmed();
+#endif
             ctx->buildConfigResult->extraCoreData->config = confStr;
             ctx->buildConfigResult->extraCoreData->configDir = GetBasePath();
             ctx->buildConfigResult->extraCoreData->noLog = Configs::dataStore->mieru_no_log;
