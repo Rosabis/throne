@@ -218,8 +218,9 @@ void MainWindow::urltest_current_group(const QList<std::shared_ptr<Configs::Prox
                         delete extraProcess;
                         extraProcess = nullptr;
                     } else {
-                        // Wait a bit for process to be ready
-                        QThread::msleep(500);
+                        // 外部核心（尤其是 Juicity）启动 socks 监听比 naive 慢一点，
+                        // 这里多等一会儿，避免 URL 测试刚开始就被拒绝连接。
+                        QThread::msleep(2000); // Wait for process to be ready
                     }
                 }
                 // Run the test
