@@ -241,10 +241,10 @@ set(PROJECT_SOURCES
         src/configs/common/multiplex.cpp
         src/configs/common/transport.cpp
         src/configs/common/Outbound.cpp
-         include/configs/outbounds/socks.h
-         include/configs/outbounds/http.h
+        include/configs/outbounds/socks.h
+        include/configs/outbounds/http.h
          include/configs/outbounds/naive.h
-         include/configs/outbounds/shadowsocks.h
+        include/configs/outbounds/shadowsocks.h
         include/configs/outbounds/vmess.h
         include/configs/outbounds/trojan.h
         include/configs/outbounds/hysteria.h
@@ -254,10 +254,10 @@ set(PROJECT_SOURCES
         include/configs/outbounds/ssh.h
         
         # outbounds impl
-         src/configs/outbounds/anyTLS.cpp
-         src/configs/outbounds/http.cpp
+        src/configs/outbounds/anyTLS.cpp
+        src/configs/outbounds/http.cpp
          src/configs/outbounds/naive.cpp
-         src/configs/outbounds/hysteria.cpp
+        src/configs/outbounds/hysteria.cpp
         src/configs/outbounds/shadowsocks.cpp
         src/configs/outbounds/socks.cpp
         src/configs/outbounds/ssh.cpp
