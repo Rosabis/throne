@@ -245,6 +245,9 @@ namespace Configs {
         } else if (type == "naive") {
             bean = new Configs::AbstractBean(-1);
             outbound = new Configs::naive();
+        } else if (type == "juicity") {
+            bean = new Configs::AbstractBean(-1);
+            outbound = new Configs::juicity();
         } else if (type == "shadowsocks") {
             bean = new Configs::ShadowSocksBean();
             outbound = new Configs::shadowsocks();

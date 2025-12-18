@@ -196,6 +196,11 @@ namespace Configs {
         QString naive_socks_listen_addr = "127.0.0.1";
         int naive_socks_port_base = 30000;
         bool naive_no_log = false;
+        // Juicity: run as external juicity.exe, sing-box connects to local socks.
+        QString juicity_core_path = "";
+        QString juicity_socks_listen_addr = "127.0.0.1";
+        int juicity_socks_port_base = 31000;
+        bool juicity_no_log = false;
 
         // Methods
 

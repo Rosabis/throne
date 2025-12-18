@@ -300,6 +300,10 @@ namespace Configs {
         _add(new configItem("naive_socks_listen_addr", &naive_socks_listen_addr, itemType::string));
         _add(new configItem("naive_socks_port_base", &naive_socks_port_base, itemType::integer));
         _add(new configItem("naive_no_log", &naive_no_log, itemType::boolean));
+        _add(new configItem("juicity_core_path", &juicity_core_path, itemType::string));
+        _add(new configItem("juicity_socks_listen_addr", &juicity_socks_listen_addr, itemType::string));
+        _add(new configItem("juicity_socks_port_base", &juicity_socks_port_base, itemType::integer));
+        _add(new configItem("juicity_no_log", &juicity_no_log, itemType::boolean));
         _add(new configItem("enable_ntp", &enable_ntp, itemType::boolean));
         _add(new configItem("ntp_server_address", &ntp_server_address, itemType::string));
         _add(new configItem("ntp_server_port", &ntp_server_port, itemType::integer));

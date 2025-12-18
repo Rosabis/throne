@@ -299,6 +299,71 @@ namespace Configs {
             MW_show_log(QString("Naive: will start naive.exe on %1:%2, sing-box will connect to socks://%1:%2")
                         .arg(listenAddr, Int2String(listenPort)));
         }
+
+        // Juicity (external core): start juicity.exe, sing-box connects to local socks.
+        if (ctx->ent->type == "juicity")
+        {
+            auto outbound = dynamic_cast<Configs::juicity*>(ctx->ent->outbound.get());
+            if (outbound == nullptr)
+            {
+                MW_show_log("INVALID ENT TYPE, NEEDED JUICITY GOT NULLPTR");
+                ctx->error = "failed to cast to juicity, type is: " + ctx->ent->type;
+                return;
+            }
+            if (Configs::dataStore->juicity_core_path.trimmed().isEmpty())
+            {
+                ctx->error = "Juicity core path is empty. Please set it in Settings -> Core Options.";
+                return;
+            }
+
+            auto listenAddr = Configs::dataStore->juicity_socks_listen_addr.trimmed();
+            if (listenAddr.isEmpty()) listenAddr = "127.0.0.1";
+            int base = Configs::dataStore->juicity_socks_port_base;
+            if (base <= 0) base = 31000;
+            // Deterministic port per (server, port, uuid) to avoid collisions and
+            // keep it consistent with juicity::Build() which uses the same hash formula.
+            uint h = qHash(outbound->server + ":" + Int2String(outbound->server_port) + ":" + outbound->uuid);
+            int listenPort = base + (int)(h % 10000);
+            if (listenPort <= 0 || listenPort > 65535) listenPort = 31000;
+
+            // Build args for juicity client
+            QStringList args;
+            if (!Configs::dataStore->juicity_no_log) args << "--log";
+            args << ("--listen=socks://" + listenAddr + ":" + Int2String(listenPort));
+
+            auto server_address = WrapIPV6Host(outbound->server);
+            QString server_url = "juicity://" + outbound->uuid + ":" + outbound->password + "@" + server_address + ":" + Int2String(outbound->server_port);
+            
+            // Add query parameters（含内置字段 + 额外透传字段）
+            QUrlQuery query;
+            if (!outbound->congestion_control.isEmpty()) query.addQueryItem("congestion_control", outbound->congestion_control);
+            if (!outbound->udp_relay_mode.isEmpty()) query.addQueryItem("udp_relay_mode", outbound->udp_relay_mode);
+            if (outbound->udp_over_stream) query.addQueryItem("udp_over_stream", "true");
+            if (outbound->zero_rtt_handshake) query.addQueryItem("zero_rtt_handshake", "true");
+            if (!outbound->heartbeat.isEmpty()) query.addQueryItem("heartbeat", outbound->heartbeat);
+            if (!outbound->extra_params.isEmpty())
+            {
+                QUrlQuery extra(outbound->extra_params);
+                const auto items = extra.queryItems();
+                for (const auto &item : items)
+                {
+                    query.addQueryItem(item.first, item.second);
+                }
+            }
+            
+            QUrl juicity_url(server_url);
+            juicity_url.setQuery(query);
+            args << ("--server=" + juicity_url.toString(QUrl::FullyEncoded));
+
+            ctx->buildConfigResult->extraCoreData->path = QFileInfo(Configs::dataStore->juicity_core_path).canonicalFilePath();
+            ctx->buildConfigResult->extraCoreData->args = QStringList2Command(args).trimmed();
+            ctx->buildConfigResult->extraCoreData->config = ""; // not used for juicity by default
+            ctx->buildConfigResult->extraCoreData->configDir = GetBasePath();
+            ctx->buildConfigResult->extraCoreData->noLog = Configs::dataStore->juicity_no_log;
+            
+            MW_show_log(QString("Juicity: will start juicity.exe on %1:%2, sing-box will connect to socks://%1:%2")
+                        .arg(listenAddr, Int2String(listenPort)));
+        }
     }
 
     void buildLogSections(std::shared_ptr<BuildSingBoxConfigContext> &ctx) {
@@ -1040,6 +1105,42 @@ namespace Configs {
                 // Store the config and extraCoreData for this Naive node
                 res->fullConfigs[item->id] = QJsonObject2QString(naiveCtx->buildConfigResult->coreConfig, true);
                 res->nodeExtraCoreData[item->id] = naiveCtx->buildConfigResult->extraCoreData;
+                continue;
+            }
+            // Handle Juicity nodes separately - they need extra process
+            if (item->type == "juicity")
+            {
+                auto juicityCtx = std::make_shared<BuildSingBoxConfigContext>();
+                juicityCtx->forTest = true;
+                juicityCtx->ent = item;
+                CalculatePrerequisities(juicityCtx);
+                if (!juicityCtx->error.isEmpty())
+                {
+                    MW_show_log("Failed to build Juicity test config: " + juicityCtx->error);
+                    item->latency = -1;
+                    continue;
+                }
+                buildDNSSection(juicityCtx);
+                buildLogSections(juicityCtx);
+                buildCertificateSection(juicityCtx);
+                buildNTPSection(juicityCtx);
+                buildOutboundsSection(juicityCtx);
+                if (!juicityCtx->error.isEmpty())
+                {
+                    MW_show_log("Failed to build Juicity test config: " + juicityCtx->error);
+                    item->latency = -1;
+                    continue;
+                }
+                buildRouteSection(juicityCtx);
+                if (!juicityCtx->error.isEmpty())
+                {
+                    MW_show_log("Failed to build Juicity test config: " + juicityCtx->error);
+                    item->latency = -1;
+                    continue;
+                }
+                // Store the config and extraCoreData for this Juicity node
+                res->fullConfigs[item->id] = QJsonObject2QString(juicityCtx->buildConfigResult->coreConfig, true);
+                res->nodeExtraCoreData[item->id] = juicityCtx->buildConfigResult->extraCoreData;
                 continue;
             }
             if (!IsValid(item)) {

@@ -304,6 +304,10 @@ void DialogBasicSettings::on_core_settings_clicked() {
     MyLineEdit *naive_socks_listen_addr;
     MyLineEdit *naive_socks_port_base;
     QCheckBox *naive_no_log;
+    MyLineEdit *juicity_core_path;
+    MyLineEdit *juicity_socks_listen_addr;
+    MyLineEdit *juicity_socks_port_base;
+    QCheckBox *juicity_no_log;
     //
     auto core_box_clash_listen_addr_l = new QLabel("Clash Api Listen Address");
     core_box_clash_listen_addr = new MyLineEdit;
@@ -357,6 +361,39 @@ void DialogBasicSettings::on_core_settings_clicked() {
     layout->addWidget(naive_no_log_l, ++line, 0);
     layout->addWidget(naive_no_log, line, 1);
 
+    // Juicity external core (juicity.exe)
+    auto juicity_core_path_l = new QLabel("Juicity Core Path (juicity.exe)");
+    juicity_core_path = new MyLineEdit;
+    juicity_core_path->setText(Configs::dataStore->juicity_core_path);
+    auto juicity_core_path_pick = new QPushButton("Select");
+    layout->addWidget(juicity_core_path_l, ++line, 0);
+    auto juicity_core_path_row = new QHBoxLayout;
+    juicity_core_path_row->addWidget(juicity_core_path);
+    juicity_core_path_row->addWidget(juicity_core_path_pick);
+    layout->addLayout(juicity_core_path_row, line, 1);
+    connect(juicity_core_path_pick, &QPushButton::clicked, w, [this] {
+        auto f = QFileDialog::getOpenFileName(w, "Select juicity core", QDir::currentPath());
+        if (!f.isEmpty()) juicity_core_path->setText(f);
+    });
+
+    auto juicity_socks_listen_addr_l = new QLabel("Juicity Socks Listen Address");
+    juicity_socks_listen_addr = new MyLineEdit;
+    juicity_socks_listen_addr->setText(Configs::dataStore->juicity_socks_listen_addr);
+    layout->addWidget(juicity_socks_listen_addr_l, ++line, 0);
+    layout->addWidget(juicity_socks_listen_addr, line, 1);
+
+    auto juicity_socks_port_base_l = new QLabel("Juicity Socks Port Base");
+    juicity_socks_port_base = new MyLineEdit;
+    juicity_socks_port_base->setText(Int2String(Configs::dataStore->juicity_socks_port_base));
+    layout->addWidget(juicity_socks_port_base_l, ++line, 0);
+    layout->addWidget(juicity_socks_port_base, line, 1);
+
+    auto juicity_no_log_l = new QLabel("Juicity No Output");
+    juicity_no_log = new QCheckBox;
+    juicity_no_log->setChecked(Configs::dataStore->juicity_no_log);
+    layout->addWidget(juicity_no_log_l, ++line, 0);
+    layout->addWidget(juicity_no_log, line, 1);
+
     auto box = new QDialogButtonBox;
     box->setOrientation(Qt::Horizontal);
     box->setStandardButtons(QDialogButtonBox::Cancel | QDialogButtonBox::Ok);
@@ -368,6 +405,10 @@ void DialogBasicSettings::on_core_settings_clicked() {
         Configs::dataStore->naive_socks_listen_addr = naive_socks_listen_addr->text();
         Configs::dataStore->naive_socks_port_base = naive_socks_port_base->text().toInt();
         Configs::dataStore->naive_no_log = naive_no_log->isChecked();
+        Configs::dataStore->juicity_core_path = juicity_core_path->text();
+        Configs::dataStore->juicity_socks_listen_addr = juicity_socks_listen_addr->text();
+        Configs::dataStore->juicity_socks_port_base = juicity_socks_port_base->text().toInt();
+        Configs::dataStore->juicity_no_log = juicity_no_log->isChecked();
         MW_dialog_message(Dialog_DialogBasicSettings, "UpdateDataStore");
         w->accept();
     });
