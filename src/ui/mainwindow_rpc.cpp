@@ -12,6 +12,8 @@
 #include <QMessageBox>
 #include <QProcess>
 #include <QThread>
+#include <QJsonDocument>
+#include <QJsonParseError>
 
 #include "include/configs/generate.h"
 #include "include/sys/Process.hpp"
@@ -311,7 +313,27 @@ void MainWindow::speedtest_current_group(const QList<std::shared_ptr<Configs::Pr
                         QThread::msleep(500); // Wait for naive.exe to be ready
                     }
                 }
-                runSpeedTest(configStr, true, false, {}, {}, entID);
+                // Extract tag from config JSON for tag2entID mapping
+                QMap<QString, int> singleTag2entID;
+                QJsonParseError err;
+                auto configJson = QJsonDocument::fromJson(configStr.toUtf8(), &err);
+                if (err.error == QJsonParseError::NoError && configJson.isObject()) {
+                    auto outbounds = configJson.object()["outbounds"].toArray();
+                    if (!outbounds.isEmpty()) {
+                        auto firstOutbound = outbounds[0].toObject();
+                        if (firstOutbound.contains("tag")) {
+                            QString tag = firstOutbound["tag"].toString();
+                            singleTag2entID[tag] = entID;
+                            runSpeedTest(configStr, true, false, {tag}, singleTag2entID, entID);
+                        } else {
+                            runSpeedTest(configStr, true, false, {}, {}, entID);
+                        }
+                    } else {
+                        runSpeedTest(configStr, true, false, {}, {}, entID);
+                    }
+                } else {
+                    runSpeedTest(configStr, true, false, {}, {}, entID);
+                }
                 // Stop naive.exe after test
                 if (naiveProcess != nullptr) {
                     naiveProcess->terminate();

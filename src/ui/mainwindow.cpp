@@ -572,6 +572,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
         speedtest_current_group(Configs::profileManager->CurrentGroup()->GetProfileEnts());
     });
     connect(ui->menu_stop_testing, &QAction::triggered, this, [=,this]() { stopTests(); });
+    connect(ui->menu_delete_repeat, &QAction::triggered, this, &MainWindow::on_menu_delete_repeat_triggered);
     //
     auto set_selected_or_group = [=,this](int mode) {
         // 0=group 1=select 2=unknown(menu is hide)
