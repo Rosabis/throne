@@ -1,6 +1,7 @@
 #include "include/configs/outbounds/mieru.h"
 
 #include <QUrlQuery>
+#include <QJsonArray>
 #include <include/global/Utils.hpp>
 
 #include "include/configs/common/utils.h"
