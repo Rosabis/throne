@@ -14,6 +14,7 @@
 #include "include/configs/outbounds/naive.h"
 #include "include/configs/outbounds/juicity.h"
 #include "include/configs/outbounds/mieru.h"
+#include "include/configs/outbounds/shadowquic.h"
 #include "include/configs/outbounds/shadowsocks.h"
 #include "include/configs/outbounds/ssh.h"
 #include "include/configs/outbounds/trojan.h"

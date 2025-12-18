@@ -295,7 +295,12 @@ namespace Configs {
             ctx->buildConfigResult->extraCoreData->path = QFileInfo(Configs::dataStore->naive_core_path).canonicalFilePath();
             ctx->buildConfigResult->extraCoreData->args = QStringList2Command(args).trimmed();
             ctx->buildConfigResult->extraCoreData->config = ""; // not used for naive by default
-            ctx->buildConfigResult->extraCoreData->configDir = GetBasePath();
+            // 临时文件目录：config/temp
+            {
+                QDir tempDir(GetBasePath() + "/config/temp");
+                if (!tempDir.exists()) tempDir.mkpath(".");
+                ctx->buildConfigResult->extraCoreData->configDir = tempDir.path();
+            }
             ctx->buildConfigResult->extraCoreData->noLog = Configs::dataStore->naive_no_log;
             
             MW_show_log(QString("Naive: will start naive.exe on %1:%2, sing-box will connect to socks://%1:%2")
@@ -363,7 +368,11 @@ namespace Configs {
             ctx->buildConfigResult->extraCoreData->path = QFileInfo(Configs::dataStore->juicity_core_path).canonicalFilePath();
             ctx->buildConfigResult->extraCoreData->args = QStringList2Command(args).trimmed();
             ctx->buildConfigResult->extraCoreData->config = confStr;
-            ctx->buildConfigResult->extraCoreData->configDir = GetBasePath();
+            {
+                QDir tempDir(GetBasePath() + "/config/temp");
+                if (!tempDir.exists()) tempDir.mkpath(".");
+                ctx->buildConfigResult->extraCoreData->configDir = tempDir.path();
+            }
             ctx->buildConfigResult->extraCoreData->noLog = Configs::dataStore->juicity_no_log;
 
             MW_show_log(QString("Juicity: will start juicity client on %1:%2, sing-box will connect to socks://%1:%2")
@@ -491,7 +500,11 @@ namespace Configs {
             ctx->buildConfigResult->extraCoreData->args = QStringList2Command(args).trimmed();
 #endif
             ctx->buildConfigResult->extraCoreData->config = confStr;
-            ctx->buildConfigResult->extraCoreData->configDir = GetBasePath();
+            {
+                QDir tempDir(GetBasePath() + "/config/temp");
+                if (!tempDir.exists()) tempDir.mkpath(".");
+                ctx->buildConfigResult->extraCoreData->configDir = tempDir.path();
+            }
             ctx->buildConfigResult->extraCoreData->noLog = Configs::dataStore->mieru_no_log;
 
             MW_show_log(QString("Mieru: will apply config and start mieru.exe, SOCKS5 on %1:%2, sing-box will connect to socks://%1:%2")
@@ -555,7 +568,11 @@ namespace Configs {
             ctx->buildConfigResult->extraCoreData->path = QFileInfo(Configs::dataStore->shadowquic_core_path).canonicalFilePath();
             ctx->buildConfigResult->extraCoreData->args = QStringList2Command(args).trimmed();
             ctx->buildConfigResult->extraCoreData->config = confStr;
-            ctx->buildConfigResult->extraCoreData->configDir = GetBasePath();
+            {
+                QDir tempDir(GetBasePath() + "/config/temp");
+                if (!tempDir.exists()) tempDir.mkpath(".");
+                ctx->buildConfigResult->extraCoreData->configDir = tempDir.path();
+            }
             ctx->buildConfigResult->extraCoreData->noLog = Configs::dataStore->shadowquic_no_log;
 
             MW_show_log(QString("ShadowQUIC: will start client, SOCKS5 on %1:%2, sing-box will connect to socks://%1:%2")
