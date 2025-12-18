@@ -203,6 +203,13 @@ namespace Subscription {
             if (!ok) return;
         }
 
+        // Juicity
+        if (str.startsWith("juicity://")) {
+            ent = Configs::ProfileManager::NewProxyEntity("juicity");
+            auto ok = ent->Juicity()->ParseFromLink(str);
+            if (!ok) return;
+        }
+
         // Wireguard
         if (str.startsWith("wg://")) {
             ent = Configs::ProfileManager::NewProxyEntity("wireguard");

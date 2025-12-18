@@ -17,8 +17,8 @@ void EditJuicity::onStart(std::shared_ptr<Configs::ProxyEntity> _ent) {
 
     ui->uuid->setText(outbound->uuid);
     ui->password->setText(outbound->password);
-    ui->congestion_control->setCurrentText(outbound->congestion_control);
-    ui->udp_relay_mode->setCurrentText(outbound->udp_relay_mode);
+    ui->congestion_control->setCurrentText(outbound->congestion_control.isEmpty() ? "bbr" : outbound->congestion_control);
+    ui->udp_relay_mode->setCurrentText(outbound->udp_relay_mode.isEmpty() ? "native" : outbound->udp_relay_mode);
     ui->udp_over_stream->setChecked(outbound->udp_over_stream);
     ui->zero_rtt_handshake->setChecked(outbound->zero_rtt_handshake);
     ui->heartbeat->setText(outbound->heartbeat);
