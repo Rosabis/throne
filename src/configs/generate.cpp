@@ -496,6 +496,70 @@ namespace Configs {
             MW_show_log(QString("Mieru: will apply config and start mieru.exe, SOCKS5 on %1:%2, sing-box will connect to socks://%1:%2")
                         .arg(listenAddr, Int2String(listenPort)));
         }
+
+        // ShadowQUIC (external core): start shadowquic, sing-box connects to local socks.
+        if (ctx->ent->type == "shadowquic")
+        {
+            auto outbound = dynamic_cast<Configs::shadowquic*>(ctx->ent->outbound.get());
+            if (outbound == nullptr)
+            {
+                MW_show_log("INVALID ENT TYPE, NEEDED SHADOWQUIC GOT NULLPTR");
+                ctx->error = "failed to cast to shadowquic, type is: " + ctx->ent->type;
+                return;
+            }
+            if (Configs::dataStore->naive_core_path.trimmed().isEmpty())
+            {
+                ctx->error = "ShadowQUIC core path is empty. Please set it in Settings -> Core Options.";
+                return;
+            }
+
+            auto listenAddr = Configs::dataStore->naive_socks_listen_addr.trimmed();
+            if (listenAddr.isEmpty()) listenAddr = "127.0.0.1";
+            int base = Configs::dataStore->naive_socks_port_base;
+            if (base <= 0) base = 33000;
+            uint h = qHash(outbound->server + ":" + Int2String(outbound->server_port) + ":" + outbound->username);
+            int listenPort = base + (int)(h % 10000);
+            if (listenPort <= 0 || listenPort > 65535) listenPort = 33000;
+
+            // Build shadowquic client.yaml
+            QJsonObject cfg;
+            // inbound
+            QJsonObject inbound;
+            inbound["type"] = "socks";
+            inbound["bind-addr"] = listenAddr + ":" + Int2String(listenPort);
+            cfg["inbound"] = inbound;
+
+            // outbound
+            QJsonObject out;
+            out["type"] = "shadowquic";
+            out["addr"] = outbound->server + ":" + Int2String(outbound->server_port);
+            out["username"] = outbound->username;
+            out["password"] = outbound->password;
+            if (!outbound->server_name.isEmpty()) out["server-name"] = outbound->server_name;
+            if (!outbound->alpn.isEmpty()) out["alpn"] = QListStr2QJsonArray(outbound->alpn);
+            if (outbound->initial_mtu > 0) out["initial-mtu"] = outbound->initial_mtu;
+            if (!outbound->congestion_control.isEmpty()) out["congestion-control"] = outbound->congestion_control;
+            out["zero-rtt"] = outbound->zero_rtt;
+            out["over-stream"] = outbound->over_stream;
+            cfg["outbound"] = out;
+
+            cfg["log-level"] = "trace";
+
+            // 这里直接用 JSON 序列化为 “类 YAML” 的字符串，shadowquic 支持 YAML/JSON 混用。
+            // 如需严格 YAML，可以后续再改为真正的 YAML 生成。
+            auto confStr = QJsonObject2QString(cfg, true);
+
+            QStringList args;
+            args << "-c" << "%s";
+            ctx->buildConfigResult->extraCoreData->path = QFileInfo(Configs::dataStore->naive_core_path).canonicalFilePath();
+            ctx->buildConfigResult->extraCoreData->args = QStringList2Command(args).trimmed();
+            ctx->buildConfigResult->extraCoreData->config = confStr;
+            ctx->buildConfigResult->extraCoreData->configDir = GetBasePath();
+            ctx->buildConfigResult->extraCoreData->noLog = false;
+
+            MW_show_log(QString("ShadowQUIC: will start client, SOCKS5 on %1:%2, sing-box will connect to socks://%1:%2")
+                        .arg(listenAddr, Int2String(listenPort)));
+        }
     }
 
     void buildLogSections(std::shared_ptr<BuildSingBoxConfigContext> &ctx) {

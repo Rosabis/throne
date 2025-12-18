@@ -574,8 +574,8 @@ void MainWindow::profile_start(int _id) {
         req.core_config = QJsonObject2QString(result->coreConfig, true).toStdString();
         req.disable_stats = Configs::dataStore->disable_traffic_stats;
 
-        // 对于 naive / juicity 仍然交给 sing-box 的 extra process 机制托管生命周期
-        if (ent->type == "extracore" || ent->type == "naive" || ent->type == "juicity")
+        // 对于 extracore / naive / juicity / shadowquic 交给 sing-box 的 extra process 机制托管生命周期
+        if (ent->type == "extracore" || ent->type == "naive" || ent->type == "juicity" || ent->type == "shadowquic")
         {
             req.need_extra_process = true;
             req.extra_process_path = result->extraCoreData->path.toStdString();

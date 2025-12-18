@@ -246,6 +246,7 @@ set(PROJECT_SOURCES
         include/configs/outbounds/naive.h
         include/configs/outbounds/juicity.h
         include/configs/outbounds/mieru.h
+        include/configs/outbounds/shadowquic.h
         include/configs/outbounds/shadowsocks.h
         include/configs/outbounds/vmess.h
         include/configs/outbounds/trojan.h
@@ -261,6 +262,7 @@ set(PROJECT_SOURCES
         src/configs/outbounds/naive.cpp
         src/configs/outbounds/juicity.cpp
         src/configs/outbounds/mieru.cpp
+        src/configs/outbounds/shadowquic.cpp
         src/configs/outbounds/hysteria.cpp
         src/configs/outbounds/shadowsocks.cpp
         src/configs/outbounds/socks.cpp
