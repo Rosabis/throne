@@ -1704,11 +1704,23 @@ void MainWindow::on_menu_clone_triggered() {
 }
 
 void  MainWindow::on_menu_delete_repeat_triggered () {
+    MW_show_log(tr("Remove duplicates triggered"));
+    auto allEnts = Configs::profileManager->CurrentGroup()->GetProfileEnts();
+    if (allEnts.isEmpty()) {
+        MW_show_log(tr("No profiles in current group"));
+        return;
+    }
+
     QList<std::shared_ptr<Configs::ProxyEntity>> out;
     QList<std::shared_ptr<Configs::ProxyEntity>> out_del;
 
-    Configs::ProfileFilter::Uniq (Configs::profileManager-> CurrentGroup ()-> GetProfileEnts (), out,  false );
-    Configs::ProfileFilter::OnlyInSrc (Configs::profileManager-> CurrentGroup ()-> GetProfileEnts (), out, out_del);
+    Configs::ProfileFilter::Uniq(allEnts, out, false);
+    Configs::ProfileFilter::OnlyInSrc(allEnts, out, out_del);
+
+    if (out_del.empty()) {
+        MW_show_log(tr("No duplicate profiles found"));
+        return;
+    }
 
     int  remove_display_count =  0 ;
     QString remove_display;
@@ -1720,14 +1732,14 @@ void  MainWindow::on_menu_delete_repeat_triggered () {
         }
     }
 
-    if  (!out_del.empty()  &&
-        QMessageBox::question ( this ,  tr ( " Confirmation " ),  tr ( " Remove %1 item(s) ? " ). arg (out_del. length ()) +  " \n "  + remove_display) == QMessageBox::StandardButton::Yes) {
+    if  (QMessageBox::question ( this ,  tr ( " Confirmation " ),  tr ( " Remove %1 item(s) ? " ). arg (out_del. length ()) +  " \n "  + remove_display) == QMessageBox::StandardButton::Yes) {
         QList<int> del_ids;
         for (const auto &ent: out_del) {
             del_ids += ent->id;
         }
         Configs::profileManager->BatchDeleteProfiles(del_ids);
         refresh_proxy_list();
+        MW_show_log(tr("Removed %1 duplicate profile(s)").arg(del_ids.length()));
     }
 }
 
@@ -2328,7 +2340,10 @@ void MainWindow::on_tabWidget_customContextMenuRequested(const QPoint &p) {
         menu->addAction(ui->actionSpeedtest_Group);
         menu->addAction(ui->menu_resolve_domain);
         menu->addAction(ui->menu_clear_test_result);
-        menu->addAction(ui->menu_delete_repeat);
+        auto* deleteRepeatAction = new QAction(ui->menu_delete_repeat->text(), this);
+        deleteRepeatAction->setShortcut(ui->menu_delete_repeat->shortcut());
+        connect(deleteRepeatAction, &QAction::triggered, this, &MainWindow::on_menu_delete_repeat_triggered);
+        menu->addAction(deleteRepeatAction);
         menu->addAction(ui->menu_remove_unavailable);
         menu->addAction(ui->menu_remove_invalid);
     }
