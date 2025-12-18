@@ -164,11 +164,42 @@ void MainWindow::urltest_current_group(const QList<std::shared_ptr<Configs::Prox
         for (const auto &entID: buildObject->fullConfigs.keys()) {
             auto configStr = buildObject->fullConfigs[entID];
             auto extraCoreData = buildObject->nodeExtraCoreData.contains(entID) ? buildObject->nodeExtraCoreData[entID] : nullptr;
-            auto func = [this, &counter, testCount, configStr, entID, extraCoreData]() {
-                // For Naive nodes, start naive.exe before testing
-                QProcess *naiveProcess = nullptr;
-                if (extraCoreData != nullptr && !extraCoreData->path.isEmpty()) {
-                    naiveProcess = new QProcess();
+            auto ent = Configs::profileManager->GetProfile(entID);
+            auto func = [this, &counter, testCount, configStr, entID, extraCoreData, ent]() {
+                // For Naive/Juicity/ShadowQUIC nodes, start external process before testing
+                QProcess *extraProcess = nullptr;
+                QString mieruConfigPath;
+                
+                if (ent != nullptr && ent->type == "mieru") {
+                    // Mieru needs special handling: stop → apply config → start
+                    QString exePath = QFileInfo(Configs::dataStore->mieru_core_path).canonicalFilePath();
+                    if (!exePath.isEmpty()) {
+                        // Build config file
+                        auto result = Configs::BuildSingBoxConfig(ent);
+                        if (result != nullptr && result->extraCoreData != nullptr) {
+                            QString baseDir = result->extraCoreData->configDir;
+                            if (baseDir.isEmpty()) baseDir = QDir::currentPath();
+                            QDir dir(baseDir);
+                            if (!dir.exists()) dir.mkpath(".");
+                            mieruConfigPath = dir.filePath(QString("mieru_test_%1.json").arg(entID));
+                            
+                            QFile f(mieruConfigPath);
+                            if (f.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text)) {
+                                f.write(result->extraCoreData->config.toUtf8());
+                                f.close();
+                                
+                                // Stop any existing mieru instance
+                                QProcess::execute(exePath, QStringList() << "stop");
+                                // Apply config and start
+                                QProcess::execute(exePath, QStringList() << "apply" << "config" << mieruConfigPath);
+                                QProcess::execute(exePath, QStringList() << "start");
+                                QThread::msleep(1000); // Wait for mieru to be ready
+                            }
+                        }
+                    }
+                } else if (extraCoreData != nullptr && !extraCoreData->path.isEmpty()) {
+                    // For Naive/Juicity/ShadowQUIC, use extraCoreData
+                    extraProcess = new QProcess();
                     QStringList args;
                     if (!extraCoreData->args.isEmpty()) {
                         // Use QProcess::splitCommand if available (Qt 5.15+), otherwise simple split
@@ -179,27 +210,36 @@ void MainWindow::urltest_current_group(const QList<std::shared_ptr<Configs::Prox
                         args = extraCoreData->args.split(' ', Qt::SkipEmptyParts);
                         #endif
                     }
-                    naiveProcess->setProgram(extraCoreData->path);
-                    naiveProcess->setArguments(args);
-                    naiveProcess->start();
-                    if (!naiveProcess->waitForStarted(5000)) {
-                        MW_show_log(tr("Failed to start naive.exe for testing"));
-                        delete naiveProcess;
-                        naiveProcess = nullptr;
+                    extraProcess->setProgram(extraCoreData->path);
+                    extraProcess->setArguments(args);
+                    extraProcess->start();
+                    if (!extraProcess->waitForStarted(5000)) {
+                        MW_show_log(tr("Failed to start external process for testing"));
+                        delete extraProcess;
+                        extraProcess = nullptr;
                     } else {
-                        // Wait a bit for naive.exe to be ready
+                        // Wait a bit for process to be ready
                         QThread::msleep(500);
                     }
                 }
                 // Run the test
                 MainWindow::runURLTest(configStr, true, {}, {}, entID);
-                // Stop naive.exe after test
-                if (naiveProcess != nullptr) {
-                    naiveProcess->terminate();
-                    if (!naiveProcess->waitForFinished(3000)) {
-                        naiveProcess->kill();
+                // Stop external process after test
+                if (extraProcess != nullptr) {
+                    extraProcess->terminate();
+                    if (!extraProcess->waitForFinished(3000)) {
+                        extraProcess->kill();
                     }
-                    delete naiveProcess;
+                    delete extraProcess;
+                }
+                // Stop mieru after test
+                if (!mieruConfigPath.isEmpty()) {
+                    QString exePath = QFileInfo(Configs::dataStore->mieru_core_path).canonicalFilePath();
+                    if (!exePath.isEmpty()) {
+                        QProcess::execute(exePath, QStringList() << "stop");
+                    }
+                    // Clean up temp config file
+                    QFile::remove(mieruConfigPath);
                 }
                 counter++;
                 if (counter.load() == testCount) {
@@ -293,10 +333,41 @@ void MainWindow::speedtest_current_group(const QList<std::shared_ptr<Configs::Pr
             for (const auto &entID: buildObject->fullConfigs.keys()) {
                 auto configStr = buildObject->fullConfigs[entID];
                 auto extraCoreData = buildObject->nodeExtraCoreData.contains(entID) ? buildObject->nodeExtraCoreData[entID] : nullptr;
-                // For Naive nodes, start naive.exe before testing
-                QProcess *naiveProcess = nullptr;
-                if (extraCoreData != nullptr && !extraCoreData->path.isEmpty()) {
-                    naiveProcess = new QProcess();
+                auto ent = Configs::profileManager->GetProfile(entID);
+                // For Naive/Juicity/ShadowQUIC/Mieru nodes, start external process before testing
+                QProcess *extraProcess = nullptr;
+                QString mieruConfigPath;
+                
+                if (ent != nullptr && ent->type == "mieru") {
+                    // Mieru needs special handling: stop → apply config → start
+                    QString exePath = QFileInfo(Configs::dataStore->mieru_core_path).canonicalFilePath();
+                    if (!exePath.isEmpty()) {
+                        // Build config file
+                        auto result = Configs::BuildSingBoxConfig(ent);
+                        if (result != nullptr && result->extraCoreData != nullptr) {
+                            QString baseDir = result->extraCoreData->configDir;
+                            if (baseDir.isEmpty()) baseDir = QDir::currentPath();
+                            QDir dir(baseDir);
+                            if (!dir.exists()) dir.mkpath(".");
+                            mieruConfigPath = dir.filePath(QString("mieru_test_%1.json").arg(entID));
+                            
+                            QFile f(mieruConfigPath);
+                            if (f.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text)) {
+                                f.write(result->extraCoreData->config.toUtf8());
+                                f.close();
+                                
+                                // Stop any existing mieru instance
+                                QProcess::execute(exePath, QStringList() << "stop");
+                                // Apply config and start
+                                QProcess::execute(exePath, QStringList() << "apply" << "config" << mieruConfigPath);
+                                QProcess::execute(exePath, QStringList() << "start");
+                                QThread::msleep(1000); // Wait for mieru to be ready
+                            }
+                        }
+                    }
+                } else if (extraCoreData != nullptr && !extraCoreData->path.isEmpty()) {
+                    // For Naive/Juicity/ShadowQUIC, use extraCoreData
+                    extraProcess = new QProcess();
                     QStringList args;
                     if (!extraCoreData->args.isEmpty()) {
                         #if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
@@ -305,15 +376,15 @@ void MainWindow::speedtest_current_group(const QList<std::shared_ptr<Configs::Pr
                         args = extraCoreData->args.split(' ', Qt::SkipEmptyParts);
                         #endif
                     }
-                    naiveProcess->setProgram(extraCoreData->path);
-                    naiveProcess->setArguments(args);
-                    naiveProcess->start();
-                    if (!naiveProcess->waitForStarted(5000)) {
-                        MW_show_log(tr("Failed to start naive.exe for speed test"));
-                        delete naiveProcess;
-                        naiveProcess = nullptr;
+                    extraProcess->setProgram(extraCoreData->path);
+                    extraProcess->setArguments(args);
+                    extraProcess->start();
+                    if (!extraProcess->waitForStarted(5000)) {
+                        MW_show_log(tr("Failed to start external process for speed test"));
+                        delete extraProcess;
+                        extraProcess = nullptr;
                     } else {
-                        QThread::msleep(500); // Wait for naive.exe to be ready
+                        QThread::msleep(500); // Wait for process to be ready
                     }
                 }
                 // Extract tag from config JSON for tag2entID mapping
@@ -337,13 +408,22 @@ void MainWindow::speedtest_current_group(const QList<std::shared_ptr<Configs::Pr
                 } else {
                 runSpeedTest(configStr, true, false, {}, {}, entID);
                 }
-                // Stop naive.exe after test
-                if (naiveProcess != nullptr) {
-                    naiveProcess->terminate();
-                    if (!naiveProcess->waitForFinished(3000)) {
-                        naiveProcess->kill();
+                // Stop external process after test
+                if (extraProcess != nullptr) {
+                    extraProcess->terminate();
+                    if (!extraProcess->waitForFinished(3000)) {
+                        extraProcess->kill();
                     }
-                    delete naiveProcess;
+                    delete extraProcess;
+                }
+                // Stop mieru after test
+                if (!mieruConfigPath.isEmpty()) {
+                    QString exePath = QFileInfo(Configs::dataStore->mieru_core_path).canonicalFilePath();
+                    if (!exePath.isEmpty()) {
+                        QProcess::execute(exePath, QStringList() << "stop");
+                    }
+                    // Clean up temp config file
+                    QFile::remove(mieruConfigPath);
                 }
             }
 
@@ -762,6 +842,15 @@ void MainWindow::profile_stop(bool crash, bool block, bool manual) {
     auto id = running->id;
 
     auto profile_stop_stage2 = [=,this] {
+        // 对于 Mieru，需要先调用 mieru stop 来停止后台进程
+        if (running != nullptr && running->type == "mieru") {
+            QString exePath = QFileInfo(Configs::dataStore->mieru_core_path).canonicalFilePath();
+            if (!exePath.isEmpty()) {
+                MW_show_log("Stopping mieru client...");
+                QProcess::execute(exePath, QStringList() << "stop");
+            }
+        }
+        
         if (!crash) {
             bool rpcOK;
             QString error = defaultClient->Stop(&rpcOK);

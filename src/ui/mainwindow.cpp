@@ -45,6 +45,7 @@
 #include <QMessageBox>
 #include <QDir>
 #include <QFileInfo>
+#include <QProcess>
 #if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
 #include <QStyleHints>
 #endif
@@ -982,6 +983,12 @@ void MainWindow::prepare_exit()
     //
     Configs::dataStore->save_control_no_save = true; // don't change datastore after this line
     profile_stop(false, true);
+
+    // 清理所有 mieru 进程
+    QString mieruExePath = QFileInfo(Configs::dataStore->mieru_core_path).canonicalFilePath();
+    if (!mieruExePath.isEmpty()) {
+        QProcess::execute(mieruExePath, QStringList() << "stop");
+    }
 
     runOnThread([=, this]()
     {
