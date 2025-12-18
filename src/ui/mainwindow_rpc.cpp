@@ -17,6 +17,8 @@
 #include <QFile>
 #include <QDir>
 #include <QFileInfo>
+#include <QTcpSocket>
+#include <QJsonObject>
 
 #include "include/configs/generate.h"
 #include "include/sys/Process.hpp"
@@ -24,6 +26,55 @@
 // rpc
 
 using namespace API;
+
+// Helper function to check if a port is open
+static bool checkPortOpen(const QString& host, int port, int timeoutMs = 2000) {
+    QTcpSocket socket;
+    socket.connectToHost(host, port);
+    if (socket.waitForConnected(timeoutMs)) {
+        socket.disconnectFromHost();
+        return true;
+    }
+    return false;
+}
+
+// Helper function to extract listen port from extraCoreData config
+static int extractListenPort(const QString& configJson, const QString& protocolType) {
+    QJsonParseError err;
+    auto doc = QJsonDocument::fromJson(configJson.toUtf8(), &err);
+    if (err.error != QJsonParseError::NoError || !doc.isObject()) {
+        return -1;
+    }
+    auto obj = doc.object();
+    
+    if (protocolType == "juicity") {
+        // Juicity: {"listen": "127.0.0.1:36672", ...}
+        if (obj.contains("listen")) {
+            QString listen = obj["listen"].toString();
+            int colonPos = listen.lastIndexOf(':');
+            if (colonPos >= 0) {
+                bool ok;
+                int port = listen.mid(colonPos + 1).toInt(&ok);
+                if (ok) return port;
+            }
+        }
+    } else if (protocolType == "shadowquic") {
+        // ShadowQUIC: {"inbound": {"bind-addr": "127.0.0.1:33871"}, ...}
+        if (obj.contains("inbound") && obj["inbound"].isObject()) {
+            auto inbound = obj["inbound"].toObject();
+            if (inbound.contains("bind-addr")) {
+                QString bindAddr = inbound["bind-addr"].toString();
+                int colonPos = bindAddr.lastIndexOf(':');
+                if (colonPos >= 0) {
+                    bool ok;
+                    int port = bindAddr.mid(colonPos + 1).toInt(&ok);
+                    if (ok) return port;
+                }
+            }
+        }
+    }
+    return -1;
+}
 
 void MainWindow::setup_rpc() {
     // Setup Connection
@@ -230,10 +281,34 @@ void MainWindow::urltest_current_group(const QList<std::shared_ptr<Configs::Prox
                         delete extraProcess;
                         extraProcess = nullptr;
                     } else {
-                        MW_show_log(QString("[URL Test] External process started successfully, waiting 2000ms for it to be ready..."));
-                        // 外部核心（尤其是 Juicity）启动 socks 监听比 naive 慢一点，
-                        // 这里多等一会儿，避免 URL 测试刚开始就被拒绝连接。
-                        QThread::msleep(2000); // Wait for process to be ready
+                        MW_show_log(QString("[URL Test] External process started successfully, waiting for SOCKS5 port to be ready..."));
+                        // 外部核心（尤其是 Juicity/ShadowQUIC）启动 socks 监听需要时间，
+                        // 这里检测端口是否真正开放，而不是简单等待固定时间
+                        int listenPort = -1;
+                        QString listenAddr = "127.0.0.1";
+                        if (ent != nullptr && !extraCoreData->config.isEmpty()) {
+                            listenPort = extractListenPort(extraCoreData->config, ent->type);
+                        }
+                        
+                        if (listenPort > 0) {
+                            // 尝试连接端口，最多等待 5 秒
+                            bool portReady = false;
+                            for (int i = 0; i < 10; i++) {
+                                QThread::msleep(500);
+                                if (checkPortOpen(listenAddr, listenPort, 500)) {
+                                    portReady = true;
+                                    MW_show_log(QString("[URL Test] SOCKS5 port %1:%2 is ready").arg(listenAddr).arg(listenPort));
+                                    break;
+                                }
+                            }
+                            if (!portReady) {
+                                MW_show_log(QString("[URL Test] Warning: SOCKS5 port %1:%2 may not be ready after 5 seconds").arg(listenAddr).arg(listenPort));
+                            }
+                        } else {
+                            // 无法解析端口，使用固定等待时间
+                            MW_show_log(QString("[URL Test] Cannot extract port from config, waiting 2000ms..."));
+                            QThread::msleep(2000);
+                        }
                     }
                 }
                 // Run the test
@@ -398,9 +473,34 @@ void MainWindow::speedtest_current_group(const QList<std::shared_ptr<Configs::Pr
                         delete extraProcess;
                         extraProcess = nullptr;
                     } else {
-                        // 外部核心（尤其是 Juicity）启动 socks 监听比 naive 慢一点，
-                        // 这里多等一会儿，避免 URL/测速刚开始就被拒绝连接。
-                        QThread::msleep(1500); // Wait for process to be ready
+                        MW_show_log(QString("[Speed Test] External process started successfully, waiting for SOCKS5 port to be ready..."));
+                        // 外部核心（尤其是 Juicity/ShadowQUIC）启动 socks 监听需要时间，
+                        // 这里检测端口是否真正开放，而不是简单等待固定时间
+                        int listenPort = -1;
+                        QString listenAddr = "127.0.0.1";
+                        if (ent != nullptr && !extraCoreData->config.isEmpty()) {
+                            listenPort = extractListenPort(extraCoreData->config, ent->type);
+                        }
+                        
+                        if (listenPort > 0) {
+                            // 尝试连接端口，最多等待 5 秒
+                            bool portReady = false;
+                            for (int i = 0; i < 10; i++) {
+                                QThread::msleep(500);
+                                if (checkPortOpen(listenAddr, listenPort, 500)) {
+                                    portReady = true;
+                                    MW_show_log(QString("[Speed Test] SOCKS5 port %1:%2 is ready").arg(listenAddr).arg(listenPort));
+                                    break;
+                                }
+                            }
+                            if (!portReady) {
+                                MW_show_log(QString("[Speed Test] Warning: SOCKS5 port %1:%2 may not be ready after 5 seconds").arg(listenAddr).arg(listenPort));
+                            }
+                        } else {
+                            // 无法解析端口，使用固定等待时间
+                            MW_show_log(QString("[Speed Test] Cannot extract port from config, waiting 1500ms..."));
+                            QThread::msleep(1500);
+                        }
                     }
                 }
                 // Extract tag from config JSON for tag2entID mapping
